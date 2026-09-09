@@ -197,7 +197,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 19,
+          "count": 18,
           "filter": "raw",
           "id": 104,
           "urls": {
@@ -229,7 +229,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -723,7 +723,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -981,7 +981,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -1491,7 +1491,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 19,
+          "count": 18,
           "filter": "raw",
           "id": 104,
           "urls": {
@@ -1523,7 +1523,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -1749,7 +1749,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 19,
+          "count": 18,
           "filter": "raw",
           "id": 104,
           "urls": {
@@ -1765,7 +1765,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -1991,7 +1991,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 19,
+          "count": 18,
           "filter": "raw",
           "id": 104,
           "urls": {
@@ -2007,7 +2007,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -2249,7 +2249,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -2752,7 +2752,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -3010,7 +3010,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 19,
+          "count": 18,
           "filter": "raw",
           "id": 104,
           "urls": {
@@ -3026,7 +3026,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -3042,7 +3042,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 15,
+          "count": 14,
           "filter": "raw",
           "id": 98,
           "urls": {
@@ -3284,7 +3284,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 19,
+          "count": 18,
           "filter": "raw",
           "id": 104,
           "urls": {
@@ -3300,7 +3300,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -3316,7 +3316,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 15,
+          "count": 14,
           "filter": "raw",
           "id": 98,
           "urls": {
@@ -3558,7 +3558,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -3816,7 +3816,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -4367,7 +4367,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 15,
+          "count": 14,
           "filter": "raw",
           "id": 98,
           "urls": {
@@ -4868,7 +4868,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -4884,7 +4884,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 15,
+          "count": 14,
           "filter": "raw",
           "id": 98,
           "urls": {
@@ -5171,7 +5171,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 81,
+          "count": 79,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -5217,10 +5217,10 @@
       "virtual_video_source": ""
     }
   ],
-  "rest_url": "https://buffaloriverworks.com/wp-json/tribe/events/v1/events/?page=1&per_page=50&start_date=2026-09-08 00:00:00&end_date=2028-09-08 23:59:59&status=publish",
+  "rest_url": "https://buffaloriverworks.com/wp-json/tribe/events/v1/events/?page=1&per_page=50&start_date=2026-09-09 00:00:00&end_date=2028-09-09 23:59:59&status=publish",
   "total": 20,
   "total_pages": 1,
-  "generated_at": "2026-09-09T02:24:07Z",
+  "generated_at": "2026-09-09T08:30:29Z",
   "complete": true,
   "captured": 20
 }
