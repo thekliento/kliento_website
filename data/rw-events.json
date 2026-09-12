@@ -1,280 +1,6 @@
 {
   "events": [
     {
-      "id": 31009,
-      "global_id": "buffaloriverworks.com?id=31009",
-      "global_id_lineage": [
-        "buffaloriverworks.com?id=31009"
-      ],
-      "author": "29",
-      "status": "publish",
-      "date": "2026-08-14 08:59:30",
-      "date_utc": "2026-08-14 12:59:30",
-      "modified": "2026-08-17 13:33:01",
-      "modified_utc": "2026-08-17 17:33:01",
-      "url": "https://buffaloriverworks.com/event/death-at-the-silos-september-11/",
-      "rest_url": "https://buffaloriverworks.com/wp-json/tribe/events/v1/events/31009",
-      "title": "Death at the Silos - September 11",
-      "description": "<p><!-- RW-EVENT: DEATH AT THE SILOS RETURNS - SEPTEMBER 11, 2026 @ BUFFALO RIVERWORKS --></p>\n<div style=\"max-width:700px;margin:0 auto 44px;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">\n<div style=\"background:linear-gradient(135deg,#171a22 0%,#343946 36%,#8f1931 68%,#111319 100%);border-radius:12px;padding:48px 32px 40px;text-align:center;margin-bottom:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">\n<p style=\"font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.92);margin:0 0 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">⚡ Immersive Mystery Dinner</p>\n<h2 style=\"font-size:40px;font-weight:800;color:#ffffff;margin:0 0 8px;line-height:1.1;text-shadow:0 2px 20px rgba(0,0,0,0.55);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Death at the Silos Returns</h2>\n<p style=\"font-size:16px;color:rgba(255,255,255,0.92);margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">An electrifying murder mystery dinner</p>\n<p style=\"font-size:14px;color:rgba(255,255,255,0.92);margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Buffet dinner, live actors, clues, suspects, and prizes</p>\n<p>    <a href=\"https://www.google.com/maps/dir/?api=1&amp;destination=Buffalo+RiverWorks%2C+359+Ganson+St%2C+Buffalo%2C+NY+14203\" target=\"_blank\" rel=\"noopener\" style=\"display:inline-block;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.3);border-radius:999px;padding:6px 20px;font-size:13px;color:rgba(255,255,255,0.92);margin-bottom:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-decoration:none;touch-action:manipulation;\">📍 Buffalo RiverWorks &nbsp;·&nbsp; Silo Events Center &nbsp;·&nbsp; Friday, September 11, 2026</a><br />\n    <a href=\"https://ticketpeak.com/go/psf/events/11833-Death%20at%20the%20Silos%20Returns%3A%20An%20Electrifying%20Murder%20Mystery%20Dinner%20at%20Buffalo%20RiverWorks!/35782\" target=\"_blank\" rel=\"noopener\" style=\"display:inline-block;background:#ffffff;color:#9b1c31;font-size:16px;font-weight:800;padding:14px 40px;border-radius:8px;text-decoration:none;margin-top:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;touch-action:manipulation;\">🎟️ Get Tickets</a>\n  </div>\n<table style=\"width:100%;border-collapse:separate;border-spacing:10px;margin-bottom:6px;table-layout:fixed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">\n<tr>\n<td style=\"background:#9b1c31;border-radius:10px;padding:16px 14px;vertical-align:top;\">\n<div style=\"font-size:22px;margin-bottom:6px;\">📅</div>\n<div style=\"font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.86);margin-bottom:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Date</div>\n<div style=\"font-size:15px;font-weight:800;color:#ffffff;line-height:1.25;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Friday, September 11</div>\n</td>\n<td style=\"background:#9b1c31;border-radius:10px;padding:16px 14px;vertical-align:top;\">\n<div style=\"font-size:22px;margin-bottom:6px;\">🍽️</div>\n<div style=\"font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.86);margin-bottom:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Dinner Begins</div>\n<div style=\"font-size:15px;font-weight:800;color:#ffffff;line-height:1.25;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">6:00 PM</div>\n</td>\n</tr>\n<tr>\n<td style=\"background:#9b1c31;border-radius:10px;padding:16px 14px;vertical-align:top;\">\n<div style=\"font-size:22px;margin-bottom:6px;\">🕵️</div>\n<div style=\"font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.86);margin-bottom:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Investigation</div>\n<div style=\"font-size:15px;font-weight:800;color:#ffffff;line-height:1.25;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">After Dinner</div>\n</td>\n<td style=\"background:#9b1c31;border-radius:10px;padding:16px 14px;vertical-align:top;\">\n<div style=\"font-size:22px;margin-bottom:6px;\">🏆</div>\n<div style=\"font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.86);margin-bottom:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Event Ends</div>\n<div style=\"font-size:15px;font-weight:800;color:#ffffff;line-height:1.25;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">9:30 PM</div>\n</td>\n</tr>\n</table>\n<div style=\"background:#ffffff;border:2px solid #e0e0e0;border-radius:10px;margin:16px 0;overflow:hidden;\">\n<div style=\"padding:14px 18px;border-bottom:2px solid #e0e0e0;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#888888;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">⚡ Why This Night Hits</div>\n<table style=\"width:100%;border-collapse:collapse;\">\n<tr style=\"border-bottom:1px solid #f0f0f0;\">\n<td style=\"padding:14px 18px;font-size:16px;font-weight:700;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Explore Buffalo RiverWorks as a living, breathing crime scene</td>\n<td style=\"padding:14px 18px;text-align:right;\"><span style=\"font-size:11px;font-weight:500;background:#f4f0f1;color:#8a1020;padding:3px 9px;border-radius:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Immersive</span></td>\n</tr>\n<tr style=\"border-bottom:1px solid #f0f0f0;\">\n<td style=\"padding:14px 18px;font-size:16px;font-weight:700;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Interrogate suspects, uncover clues, and decide who done it</td>\n<td style=\"padding:14px 18px;text-align:right;\"><span style=\"font-size:11px;font-weight:500;background:#f4f0f1;color:#8a1020;padding:3px 9px;border-radius:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Detective Work</span></td>\n</tr>\n<tr style=\"border-bottom:1px solid #f0f0f0;\">\n<td style=\"padding:14px 18px;font-size:16px;font-weight:700;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Experience a Tesla-inspired electric ray gun and evolving live storylines</td>\n<td style=\"padding:14px 18px;text-align:right;\"><span style=\"font-size:11px;font-weight:500;background:#eef4ff;color:#244f9d;padding:3px 9px;border-radius:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Tesla</span></td>\n</tr>\n<tr>\n<td style=\"padding:14px 18px;font-size:16px;font-weight:700;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Solve the mystery correctly for a shot at prizes</td>\n<td style=\"padding:14px 18px;text-align:right;\"><span style=\"font-size:11px;font-weight:500;background:#fff4d6;color:#8a5a00;padding:3px 9px;border-radius:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Prizes</span></td>\n</tr>\n</table></div>\n<div style=\"background:#f8f0f2;border:2px solid #e0b7c0;border-radius:10px;margin:16px 0;padding:20px 22px;\">\n<p style=\"font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#9b1c31;margin:0 0 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">🔍 The Story</p>\n<p style=\"font-size:17px;font-weight:800;color:#111111;margin:0 0 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Step back into 1896</p>\n<p style=\"font-size:14px;color:#333333;line-height:1.75;margin:0 0 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Innovation is booming, tensions are rising, and one shocking murder changes everything. After selling out every show last year, <strong>Death at the Silos is back!</strong> This immersive experience transforms Buffalo RiverWorks into a crime scene where you are part of the investigation.</p>\n<p style=\"font-size:14px;color:#333333;line-height:1.75;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Nikola Tesla is dazzling Buffalo with revolutionary ideas and dangerous new technology. But when a reform-minded mayor is mysteriously killed, suspicion spreads like wildfire. Was it Tesla himself, a corrupt Irish cop, a tipsy boat captain, or the madame running Buffalo&#8217;s most notorious house of ill repute?</p>\n</p></div>\n<div style=\"background:#fff6ef;border:2px solid #f0c1aa;border-radius:10px;margin:16px 0;padding:20px 22px;\">\n<p style=\"font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#9b1c31;margin:0 0 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">🍽️ A Killer Menu</p>\n<p style=\"font-size:14px;color:#333333;line-height:1.75;margin:0 0 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Your ticket includes both the immersive performance and a full buffet dinner inside the stunning Silo Events Center:</p>\n<p style=\"font-size:14px;color:#333333;line-height:1.75;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Honey Basil Chicken Breast (Gluten Free)<br />Beer Braised Pot Roast with Gravy<br />Six Cheese Bow Tie Pasta<br />Fresh Garden Salad<br />Smashed Red Potatoes<br />Seasonal Vegetable Medley<br />Warm Dinner Rolls<br />Coffee &amp; Hot Tea (Fountain &amp; Alcoholic beverages available for purchase)</p>\n</p></div>\n<table style=\"width:100%;border-collapse:collapse;background:#f8f8f8;border:2px solid #e0e0e0;border-radius:10px;margin:16px 0;\">\n<tr>\n<td style=\"padding:18px 20px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">\n<div style=\"font-size:16px;font-weight:700;color:#333333;line-height:1.45;margin:0 0 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">🪪 $66 General Admission + fees &nbsp;·&nbsp; Dinner and immersive mystery experience included &nbsp;·&nbsp; Light walking and standing involved</div>\n<p>        <a href=\"https://ticketpeak.com/go/psf/events/11833-Death%20at%20the%20Silos%20Returns%3A%20An%20Electrifying%20Murder%20Mystery%20Dinner%20at%20Buffalo%20RiverWorks!/35782\" target=\"_blank\" rel=\"noopener\" style=\"display:inline-block;min-width:220px;background:#9b1c31;color:#ffffff;font-size:16px;font-weight:800;line-height:1.2;text-align:center;padding:14px 28px;border-radius:8px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;touch-action:manipulation;white-space:nowrap;\">🎟️ Get Tickets</a>\n      </td>\n</tr>\n</table>\n<div style=\"border:2px solid #9b1c31;border-radius:10px;margin:16px 0;overflow:hidden;\">\n<div id=\"ds911-gtk-header\" role=\"button\" tabindex=\"0\" aria-expanded=\"false\" aria-controls=\"ds911GtkBody\" onclick=\"var b=document.getElementById('ds911GtkBody');var open=b.style.maxHeight!=='0px'&#038;&#038;b.style.maxHeight!=='';b.style.maxHeight=open?'0px':'3000px';document.getElementById('ds911GtkArrow').innerHTML=open?'&#9660;':'&#9650;';this.setAttribute('aria-expanded',open?'false':'true');\" onkeydown=\"if(event.key==='Enter'||event.key===' '){this.click();event.preventDefault();}\" style=\"background-color:#9b1c31;padding:18px 22px;cursor:pointer;line-height:1.4;overflow:hidden;touch-action:manipulation;\">\n      <span style=\"font-size:17px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;float:left;\">ℹ️ &nbsp;Good to Know Before You Go</span><br />\n      <span id=\"ds911GtkArrow\" style=\"font-size:18px;color:#ffffff;float:right;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">&#9660;</span></p>\n<div style=\"clear:both;\"></div>\n</p></div>\n<div id=\"ds911GtkBody\" style=\"max-height:0px;overflow:hidden;transition:max-height 0.4s ease;background:#ffffff;\">\n<div style=\"border-bottom:1px solid #eeeeee;background:#ffffff;\">\n<div role=\"button\" tabindex=\"0\" aria-expanded=\"false\" aria-controls=\"ds911Faq1\" onclick=\"var a=document.getElementById('ds911Faq1');var open=a.style.maxHeight!=='0px'&#038;&#038;a.style.maxHeight!=='';a.style.maxHeight=open?'0px':'3000px';document.getElementById('ds911Arr1').innerHTML=open?'&#9660;':'&#9650;';this.setAttribute('aria-expanded',open?'false':'true');\" onkeydown=\"if(event.key==='Enter'||event.key===' '){this.click();event.preventDefault();}\" style=\"padding:15px 20px;cursor:pointer;background:#ffffff;overflow:hidden;touch-action:manipulation;\">\n          <span style=\"font-size:14px;font-weight:800;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;float:left;\">🕵️ &nbsp;How does the night work?</span><br />\n          <span id=\"ds911Arr1\" style=\"font-size:14px;color:#aaaaaa;float:right;\">&#9660;</span></p>\n<div style=\"clear:both;\"></div>\n</p></div>\n<div id=\"ds911Faq1\" style=\"max-height:0px;overflow:hidden;transition:max-height 0.3s ease;background:#f9f9f9;\">\n<p style=\"margin:0;padding:14px 20px 16px 20px;font-size:14px;color:#333333;line-height:1.7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Dinner begins in the Silo Events Center. Your investigation starts the moment you walk through the doors, and after dinner guests move into the historic silos to question suspects and gather clues before returning to submit a final guess.</p>\n</p></div>\n</p></div>\n<div style=\"border-bottom:1px solid #eeeeee;background:#ffffff;\">\n<div role=\"button\" tabindex=\"0\" aria-expanded=\"false\" aria-controls=\"ds911Faq2\" onclick=\"var a=document.getElementById('ds911Faq2');var open=a.style.maxHeight!=='0px'&#038;&#038;a.style.maxHeight!=='';a.style.maxHeight=open?'0px':'3000px';document.getElementById('ds911Arr2').innerHTML=open?'&#9660;':'&#9650;';this.setAttribute('aria-expanded',open?'false':'true');\" onkeydown=\"if(event.key==='Enter'||event.key===' '){this.click();event.preventDefault();}\" style=\"padding:15px 20px;cursor:pointer;background:#ffffff;overflow:hidden;touch-action:manipulation;\">\n          <span style=\"font-size:14px;font-weight:800;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;float:left;\">⚠️ &nbsp;What should guests expect physically?</span><br />\n          <span id=\"ds911Arr2\" style=\"font-size:14px;color:#aaaaaa;float:right;\">&#9660;</span></p>\n<div style=\"clear:both;\"></div>\n</p></div>\n<div id=\"ds911Faq2\" style=\"max-height:0px;overflow:hidden;transition:max-height 0.3s ease;background:#f9f9f9;\">\n<p style=\"margin:0;padding:14px 20px 16px 20px;font-size:14px;color:#333333;line-height:1.7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Light walking and standing are involved once the investigation moves into the silos, so guests should plan for an interactive evening rather than a seated-only show.</p>\n</p></div>\n</p></div>\n<div style=\"border-bottom:1px solid #eeeeee;background:#ffffff;\">\n<div role=\"button\" tabindex=\"0\" aria-expanded=\"false\" aria-controls=\"ds911Faq3\" onclick=\"var a=document.getElementById('ds911Faq3');var open=a.style.maxHeight!=='0px'&#038;&#038;a.style.maxHeight!=='';a.style.maxHeight=open?'0px':'3000px';document.getElementById('ds911Arr3').innerHTML=open?'&#9660;':'&#9650;';this.setAttribute('aria-expanded',open?'false':'true');\" onkeydown=\"if(event.key==='Enter'||event.key===' '){this.click();event.preventDefault();}\" style=\"padding:15px 20px;cursor:pointer;background:#ffffff;overflow:hidden;touch-action:manipulation;\">\n          <span style=\"font-size:14px;font-weight:800;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;float:left;\">🍽️ &nbsp;Is dinner included?</span><br />\n          <span id=\"ds911Arr3\" style=\"font-size:14px;color:#aaaaaa;float:right;\">&#9660;</span></p>\n<div style=\"clear:both;\"></div>\n</p></div>\n<div id=\"ds911Faq3\" style=\"max-height:0px;overflow:hidden;transition:max-height 0.3s ease;background:#f9f9f9;\">\n<p style=\"margin:0;padding:14px 20px 16px 20px;font-size:14px;color:#333333;line-height:1.7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Yes. Your ticket includes the buffet dinner in the Silo Events Center as part of the full Death at the Silos experience.</p>\n</p></div>\n</p></div>\n<div style=\"background:#ffffff;\">\n<div role=\"button\" tabindex=\"0\" aria-expanded=\"false\" aria-controls=\"ds911Faq4\" onclick=\"var a=document.getElementById('ds911Faq4');var open=a.style.maxHeight!=='0px'&#038;&#038;a.style.maxHeight!=='';a.style.maxHeight=open?'0px':'3000px';document.getElementById('ds911Arr4').innerHTML=open?'&#9660;':'&#9650;';this.setAttribute('aria-expanded',open?'false':'true');\" onkeydown=\"if(event.key==='Enter'||event.key===' '){this.click();event.preventDefault();}\" style=\"padding:15px 20px;cursor:pointer;background:#ffffff;overflow:hidden;touch-action:manipulation;\">\n          <span style=\"font-size:14px;font-weight:800;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;float:left;\">🏆 &nbsp;Can you win something?</span><br />\n          <span id=\"ds911Arr4\" style=\"font-size:14px;color:#aaaaaa;float:right;\">&#9660;</span></p>\n<div style=\"clear:both;\"></div>\n</p></div>\n<div id=\"ds911Faq4\" style=\"max-height:0px;overflow:hidden;transition:max-height 0.3s ease;background:#f9f9f9;\">\n<p style=\"margin:0;padding:14px 20px 16px 20px;font-size:14px;color:#333333;line-height:1.7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;\">Yes. Guests who correctly identify the killer can compete for prizes at the end of the night.</p>\n</p></div>\n</p></div>\n</p></div>\n</p></div>\n</div>\n<p><!-- END RW-EVENT --></p>",
-      "excerpt": "",
-      "slug": "death-at-the-silos-september-11",
-      "image": {
-        "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026.png",
-        "id": 29230,
-        "extension": "png",
-        "width": 1920,
-        "height": 1080,
-        "filesize": 4069243,
-        "sizes": {
-          "medium": {
-            "width": 300,
-            "height": 169,
-            "mime-type": "image/png",
-            "filesize": 118774,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-300x169.png"
-          },
-          "large": {
-            "width": 1030,
-            "height": 579,
-            "mime-type": "image/png",
-            "filesize": 1039741,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-1030x579.png"
-          },
-          "thumbnail": {
-            "width": 80,
-            "height": 80,
-            "mime-type": "image/png",
-            "filesize": 17426,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-80x80.png"
-          },
-          "medium_large": {
-            "width": 768,
-            "height": 432,
-            "mime-type": "image/png",
-            "filesize": 626009,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-768x432.png"
-          },
-          "1536x1536": {
-            "width": 1536,
-            "height": 864,
-            "mime-type": "image/png",
-            "filesize": 2049685,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-1536x864.png"
-          },
-          "shop_thumbnail": {
-            "width": 120,
-            "height": 120,
-            "mime-type": "image/png",
-            "filesize": 36466,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-120x120.png"
-          },
-          "shop_catalog": {
-            "width": 450,
-            "height": 450,
-            "mime-type": "image/png",
-            "filesize": 377139,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-450x450.png"
-          },
-          "shop_single": {
-            "width": 450,
-            "height": 253,
-            "mime-type": "image/png",
-            "filesize": 243467,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-450x253.png"
-          },
-          "cfw_cart_thumb": {
-            "width": 60,
-            "height": 34,
-            "mime-type": "image/png",
-            "filesize": 6055,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-60x34.png"
-          },
-          "cfw_trust_badge_thumb": {
-            "width": 110,
-            "height": 62,
-            "mime-type": "image/png",
-            "filesize": 19056,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-110x62.png"
-          },
-          "woocommerce_thumbnail": {
-            "width": 300,
-            "height": 300,
-            "mime-type": "image/png",
-            "filesize": 185709,
-            "uncropped": false,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-300x300.png"
-          },
-          "woocommerce_single": {
-            "width": 600,
-            "height": 338,
-            "mime-type": "image/png",
-            "filesize": 404880,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-600x338.png"
-          },
-          "woocommerce_gallery_thumbnail": {
-            "width": 100,
-            "height": 100,
-            "mime-type": "image/png",
-            "filesize": 26078,
-            "url": "https://buffaloriverworks.com/wp-content/uploads/2026/03/Death-at-the-Silos-2026-100x100.png"
-          }
-        }
-      },
-      "all_day": false,
-      "start_date": "2026-09-11 18:00:00",
-      "start_date_details": {
-        "year": "2026",
-        "month": "09",
-        "day": "11",
-        "hour": "18",
-        "minutes": "00",
-        "seconds": "00"
-      },
-      "end_date": "2026-09-11 21:30:00",
-      "end_date_details": {
-        "year": "2026",
-        "month": "09",
-        "day": "11",
-        "hour": "21",
-        "minutes": "30",
-        "seconds": "00"
-      },
-      "utc_start_date": "2026-09-11 22:00:00",
-      "utc_start_date_details": {
-        "year": "2026",
-        "month": "09",
-        "day": "11",
-        "hour": "22",
-        "minutes": "00",
-        "seconds": "00"
-      },
-      "utc_end_date": "2026-09-12 01:30:00",
-      "utc_end_date_details": {
-        "year": "2026",
-        "month": "09",
-        "day": "12",
-        "hour": "01",
-        "minutes": "30",
-        "seconds": "00"
-      },
-      "timezone": "America/New_York",
-      "timezone_abbr": "EDT",
-      "cost": "",
-      "cost_details": {
-        "currency_symbol": "",
-        "currency_code": "",
-        "currency_position": "",
-        "values": []
-      },
-      "website": "https://buffaloriverworks.com/event/death-at-the-silos-september-11/",
-      "show_map": false,
-      "show_map_link": false,
-      "hide_from_listings": false,
-      "sticky": false,
-      "featured": false,
-      "categories": [
-        {
-          "name": "Events for Adults in Buffalo",
-          "slug": "events-for-adults-in-buffalo",
-          "term_group": 0,
-          "term_taxonomy_id": 102,
-          "taxonomy": "tribe_events_cat",
-          "description": "",
-          "parent": 0,
-          "count": 11,
-          "filter": "raw",
-          "id": 102,
-          "urls": {
-            "self": "https://buffaloriverworks.com/wp-json/tribe/events/v1/categories/102",
-            "collection": "https://buffaloriverworks.com/wp-json/tribe/events/v1/categories"
-          }
-        },
-        {
-          "name": "Family Friendly Things to Do in Buffalo",
-          "slug": "family-friendly-things-to-do-in-buffalo",
-          "term_group": 0,
-          "term_taxonomy_id": 104,
-          "taxonomy": "tribe_events_cat",
-          "description": "",
-          "parent": 0,
-          "count": 16,
-          "filter": "raw",
-          "id": 104,
-          "urls": {
-            "self": "https://buffaloriverworks.com/wp-json/tribe/events/v1/categories/104",
-            "collection": "https://buffaloriverworks.com/wp-json/tribe/events/v1/categories"
-          }
-        },
-        {
-          "name": "Murder Mystery",
-          "slug": "murder-mystery",
-          "term_group": 0,
-          "term_taxonomy_id": 81,
-          "taxonomy": "tribe_events_cat",
-          "description": "",
-          "parent": 0,
-          "count": 17,
-          "filter": "raw",
-          "id": 81,
-          "urls": {
-            "self": "https://buffaloriverworks.com/wp-json/tribe/events/v1/categories/81",
-            "collection": "https://buffaloriverworks.com/wp-json/tribe/events/v1/categories"
-          }
-        },
-        {
-          "name": "RW Events",
-          "slug": "rw-events",
-          "term_group": 0,
-          "term_taxonomy_id": 48,
-          "taxonomy": "tribe_events_cat",
-          "description": "",
-          "parent": 0,
-          "count": 78,
-          "filter": "raw",
-          "id": 48,
-          "urls": {
-            "self": "https://buffaloriverworks.com/wp-json/tribe/events/v1/categories/48",
-            "collection": "https://buffaloriverworks.com/wp-json/tribe/events/v1/categories"
-          }
-        }
-      ],
-      "tags": [],
-      "venue": {
-        "id": 4833,
-        "author": "1",
-        "status": "publish",
-        "date": "2017-03-19 17:19:53",
-        "date_utc": "2017-03-19 22:19:53",
-        "modified": "2025-10-28 03:56:12",
-        "modified_utc": "2025-10-28 07:56:12",
-        "url": "https://buffaloriverworks.com/venue/buffalo-riverworks/",
-        "venue": "Buffalo Riverworks",
-        "description": "<div style=\"display: none;\">Buffalo RiverWorks est un lieu unique qui offre une fusion intemporelle d&#8217;activités, de divertissements et de vues imprenables sur le front de mer. Abritant diverses ligues sportives, des parcours d&#8217;accrobranche urbains, plusieurs bars et restaurants, et même un silo à grains transformé en le plus grand du monde, RiverWorks offre un cadre unique à tous les amateurs de divertissement.</p>\n<p>Idéalement situé sur les rives de la rivière Buffalo, ce lieu magnifique invite à l&#8217;exploration. Tout comme sur <a href=\"https://casino.actionclimat.ca/\">https://casino.actionclimat.ca/</a>, vous pourrez vivre une montée d&#8217;adrénaline en participant à des activités captivantes ou vous détendre et admirer le paysage pittoresque du port.</p>\n<p>Similaire aux sensations fortes et à l&#8217;exaltation des plateformes de jeux en ligne comme Asino, Buffalo RiverWorks déborde de vie et d&#8217;effervescence. Bien que différents par nature, les deux sites partagent le même objectif : offrir une expérience inoubliable qui vous donnera envie de revenir.</p>\n<p>Que vous préfériez jouer au blackjack sur Asino ou faire du rafting à Buffalo RiverWorks, tous deux ont le charme et l&#8217;attrait qui vous accueilleront toujours et répondront à vos envies de divertissement et de sensations fortes. À RiverWorks, il se passe toujours quelque chose d&#8217;amusant, tout comme il y a toujours un nouveau jeu qui vous attend au Casino Action Climat. Avec un large éventail d&#8217;activités disponibles, RiverWorks s&#8217;est imposé comme un haut lieu du divertissement à Buffalo, vous offrant une expérience palpitante à chaque fois. Venez découvrir nos offres et faites de chaque visite une aventure mémorable.</p></div>",
-        "slug": "buffalo-riverworks",
-        "address": "359 Ganson Street",
-        "city": "Buffalo",
-        "country": "United States",
-        "state": "NY",
-        "zip": "14203",
-        "phone": "844.SIX.CANS",
-        "website": "https://buffaloriverworks.com/",
-        "stateprovince": "NY",
-        "geo_lat": 42.8699170000000009395080269314348697662353515625,
-        "geo_lng": -78.87263799999999491774360649287700653076171875,
-        "show_map": true,
-        "show_map_link": true,
-        "global_id": "buffaloriverworks.com?id=4833",
-        "global_id_lineage": [
-          "buffaloriverworks.com?id=4833"
-        ]
-      },
-      "organizer": [],
-      "custom_fields": [],
-      "is_virtual": false,
-      "virtual_url": null,
-      "virtual_video_source": ""
-    },
-    {
       "id": 29021,
       "global_id": "buffaloriverworks.com?id=29021",
       "global_id_lineage": [
@@ -723,7 +449,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -981,7 +707,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -1523,7 +1249,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -1765,7 +1491,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -2007,7 +1733,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -2249,7 +1975,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -2752,7 +2478,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -3026,7 +2752,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -3300,7 +3026,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -3558,7 +3284,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -3816,7 +3542,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -4868,7 +4594,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -5171,7 +4897,7 @@
           "taxonomy": "tribe_events_cat",
           "description": "",
           "parent": 0,
-          "count": 78,
+          "count": 77,
           "filter": "raw",
           "id": 48,
           "urls": {
@@ -5217,10 +4943,10 @@
       "virtual_video_source": ""
     }
   ],
-  "rest_url": "https://buffaloriverworks.com/wp-json/tribe/events/v1/events/?page=1&per_page=50&start_date=2026-09-11 00:00:00&end_date=2028-09-11 23:59:59&status=publish",
-  "total": 20,
+  "rest_url": "https://buffaloriverworks.com/wp-json/tribe/events/v1/events/?page=1&per_page=50&start_date=2026-09-12 00:00:00&end_date=2028-09-12 23:59:59&status=publish",
+  "total": 19,
   "total_pages": 1,
-  "generated_at": "2026-09-12T02:26:17Z",
+  "generated_at": "2026-09-12T13:16:29Z",
   "complete": true,
-  "captured": 20
+  "captured": 19
 }
