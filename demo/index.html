@@ -193,11 +193,18 @@
       footerText: "Powered by Kliento",
       position: "right",
       renderMode: "shadow",
+      leadCapture: {
+        enabled: true,
+        promptLabel: "Plan a group visit",
+        introText: "Leave your details and the RiverWorks team will follow up.",
+        consentText: "I agree to be contacted about my request.",
+        successMessage: "Thanks! Your info was sent to the RiverWorks team."
+      },
       quickActions: [
         { label: "What are your hours today?", message: "What are your hours today?" },
         { label: "What activities are open right now?", message: "What activities are open right now?" },
         { label: "How does parking work?", message: "How does parking work at RiverWorks?" },
-        { label: "I want to plan a group visit.", message: "I want to plan a group visit." }
+        { label: "I want to plan a group visit.", action: "lead" }
       ],
       poweredByFooter: true
     };
