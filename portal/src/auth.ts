@@ -112,8 +112,9 @@ async function userByEmail(env: Env, email: string): Promise<User | null> {
   return env.DB.prepare("SELECT * FROM users WHERE email = ?").bind(email.trim().toLowerCase()).first<User>();
 }
 
-async function passkeyCount(env: Env, userId: string): Promise<number> {
-  const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM passkeys WHERE user_id = ?").bind(userId).first<{ n: number }>();
+// Passkeys are bound to one site name, so only the ones for this host count.
+async function passkeyCount(env: Env, userId: string, rpID: string): Promise<number> {
+  const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM passkeys WHERE user_id = ? AND rp_id = ?").bind(userId, rpID).first<{ n: number }>();
   return r?.n ?? 0;
 }
 
@@ -162,7 +163,7 @@ export async function passwordStep(c: Ctx): Promise<Response> {
   await c.env.DB.prepare("UPDATE users SET failed_pw = 0 WHERE id = ?").bind(user.id).run();
 
   // The email code is only for the first sign-in or after 3 failed passkey tries (Camilo's rule).
-  const keys = await passkeyCount(c.env, user.id);
+  const keys = await passkeyCount(c.env, user.id, rp(c.req, c.env)?.rpID ?? "");
   if (keys > 0 && user.email_verified_at && Number(b?.passkeyFails || 0) < 3) {
     audit(c, user.id, "password.use_passkey", 409);
     return json({ error: "You already have a passkey. Use Sign in with passkey.", usePasskey: true }, 409);
@@ -198,7 +199,7 @@ export async function codeStep(c: Ctx): Promise<Response> {
   }
   await c.env.DB.prepare("DELETE FROM pending WHERE id_hash = ?").bind(step.id_hash).run();
   await c.env.DB.prepare("UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?) WHERE id = ?").bind(NOW(), step.user_id).run();
-  const keys = await passkeyCount(c.env, step.user_id);
+  const keys = await passkeyCount(c.env, step.user_id, rp(c.req, c.env)?.rpID ?? "");
   // No passkey yet: a 30-minute session that can only add one. Otherwise, signed in.
   const stage = keys === 0 ? "enroll" : "full";
   const setCookie = await startSession(c, step.user_id, stage, !!b?.remember);
@@ -224,8 +225,8 @@ export async function passkeyLoginVerify(c: Ctx): Promise<Response> {
   if (!r || !step?.challenge || !b?.response?.id) return json({ error: "That took too long. Try again." }, 400);
   await c.env.DB.prepare("DELETE FROM pending WHERE id_hash = ?").bind(step.id_hash).run();
   const key = await c.env.DB.prepare(
-    "SELECT p.*, u.status FROM passkeys p JOIN users u ON u.id = p.user_id WHERE p.id = ?",
-  ).bind(b.response.id).first<{ id: string; user_id: string; public_key: string; counter: number; transports: string | null; status: string }>();
+    "SELECT p.*, u.status FROM passkeys p JOIN users u ON u.id = p.user_id WHERE p.id = ? AND p.rp_id = ?",
+  ).bind(b.response.id, r.rpID).first<{ id: string; user_id: string; public_key: string; counter: number; transports: string | null; status: string }>();
   if (!key || key.status !== "active") {
     audit(c, key?.user_id ?? null, "passkey.unknown", 401);
     return json({ error: "That passkey isn't on an active account." }, 401, { "Set-Cookie": clearStep });
@@ -262,7 +263,7 @@ export async function passkeyLoginVerify(c: Ctx): Promise<Response> {
 export async function passkeyRegisterOptions(c: Ctx, s: Session): Promise<Response> {
   const r = rp(c.req, c.env);
   if (!r) return json({ error: "Wrong site." }, 400);
-  const existing = await c.env.DB.prepare("SELECT id, transports FROM passkeys WHERE user_id = ?").bind(s.user.id).all<{ id: string; transports: string | null }>();
+  const existing = await c.env.DB.prepare("SELECT id, transports FROM passkeys WHERE user_id = ? AND rp_id = ?").bind(s.user.id, r.rpID).all<{ id: string; transports: string | null }>();
   const opts = await generateRegistrationOptions({
     rpName: c.env.RP_NAME,
     rpID: r.rpID,
@@ -296,8 +297,8 @@ export async function passkeyRegisterVerify(c: Ctx, s: Session): Promise<Respons
     return json({ error: "Your device didn't save the passkey. Try again." }, 400);
   }
   const cred = info.credential;
-  await c.env.DB.prepare("INSERT INTO passkeys (id,user_id,public_key,counter,transports,label,created_at) VALUES (?,?,?,?,?,?,?)")
-    .bind(cred.id, s.user.id, b64url(cred.publicKey), cred.counter, JSON.stringify(cred.transports || []), String(b.label || "").slice(0, 60) || null, NOW()).run();
+  await c.env.DB.prepare("INSERT INTO passkeys (id,user_id,rp_id,public_key,counter,transports,label,created_at) VALUES (?,?,?,?,?,?,?,?)")
+    .bind(cred.id, s.user.id, r.rpID, b64url(cred.publicKey), cred.counter, JSON.stringify(cred.transports || []), String(b.label || "").slice(0, 60) || null, NOW()).run();
   audit(c, s.user.id, "passkey.registered", 200);
   const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
   headers.append("Set-Cookie", clearStep);
