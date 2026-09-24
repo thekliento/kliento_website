@@ -67,3 +67,26 @@ CREATE TABLE IF NOT EXISTS audit (
   detail TEXT
 );
 CREATE INDEX IF NOT EXISTS audit_ts ON audit(ts);
+
+-- CORE RULE (Camilo, 2026-09-24): an account can only exist for an email on this list.
+-- The website cannot add to it; only a direct database change can. Triggers enforce it
+-- even if the Worker code were wrong.
+CREATE TABLE IF NOT EXISTS allowed_emails (
+  email TEXT PRIMARY KEY COLLATE NOCASE,
+  name TEXT NOT NULL
+);
+INSERT OR IGNORE INTO allowed_emails (email, name) VALUES
+  ('crivas@thekliento.com', 'Camilo Rivas'),
+  ('sports@buffaloriverworks.com', 'RiverWorks shared'),
+  ('sgreen@buffaloriverworks.com', 'Sean Green'),
+  ('bcasale@pearlstreetgrill.com', 'Bill Casale'),
+  ('mchase@buffaloriverworks.com', 'Matt Chase'),
+  ('vtag@buffaloriverworks.com', 'Marc Vitagliano'),
+  ('ccasale@buffaloriverworks.com', 'Collin Casale'),
+  ('jernst@buffaloriverworks.com', 'Jess Ernst');
+CREATE TRIGGER IF NOT EXISTS users_email_allowed_insert BEFORE INSERT ON users
+  WHEN NOT EXISTS (SELECT 1 FROM allowed_emails WHERE email = NEW.email)
+  BEGIN SELECT RAISE(ABORT, 'email not on the allowed list'); END;
+CREATE TRIGGER IF NOT EXISTS users_email_allowed_update BEFORE UPDATE OF email ON users
+  WHEN NOT EXISTS (SELECT 1 FROM allowed_emails WHERE email = NEW.email)
+  BEGIN SELECT RAISE(ABORT, 'email not on the allowed list'); END;

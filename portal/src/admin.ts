@@ -33,7 +33,10 @@ export async function adminRoute(c: Ctx, s: Session, path: string): Promise<Resp
         (SELECT COUNT(*) FROM sessions x WHERE x.user_id = u.id AND x.expires_at > ?) AS sessions
        FROM users u ORDER BY u.created_at`,
     ).bind(NOW()).all();
-    return json({ users: rows.results });
+    const allowed = await c.env.DB.prepare(
+      "SELECT a.email, a.name FROM allowed_emails a WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.email = a.email) ORDER BY a.name",
+    ).all();
+    return json({ users: rows.results, available: allowed.results });
   }
 
   if (path === "/api/admin/users" && c.req.method === "POST") {
@@ -47,6 +50,12 @@ export async function adminRoute(c: Ctx, s: Session, path: string): Promise<Resp
     if (!name) return json({ error: "Enter the person's name." }, 400);
     const bad = await checkPassword(pw, email);
     if (bad) return json({ error: bad }, 400);
+    // Core rule: only emails on the allowed list can ever have an account (also enforced by a DB trigger).
+    const allowed = await c.env.DB.prepare("SELECT 1 FROM allowed_emails WHERE email = ?").bind(email).first();
+    if (!allowed) {
+      audit(c, s.user.id, "admin.user_blocked", 403, email);
+      return json({ error: "That email isn't on the allowed list, so it can't have an account." }, 403);
+    }
     const exists = await c.env.DB.prepare("SELECT 1 FROM users WHERE email = ?").bind(email).first();
     if (exists) return json({ error: "Someone already has that email." }, 409);
     const id = randomId();

@@ -109,7 +109,9 @@ async function body<T>(req: Request): Promise<T | null> {
 }
 
 async function userByEmail(env: Env, email: string): Promise<User | null> {
-  return env.DB.prepare("SELECT * FROM users WHERE email = ?").bind(email.trim().toLowerCase()).first<User>();
+  return env.DB.prepare(
+    "SELECT u.* FROM users u JOIN allowed_emails a ON a.email = u.email WHERE u.email = ?",
+  ).bind(email.trim().toLowerCase()).first<User>();
 }
 
 // Passkeys are bound to one site name, so only the ones for this host count.

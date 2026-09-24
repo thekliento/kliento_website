@@ -197,6 +197,7 @@ h3, .h3 {
 }
 .nav__link:hover, .nav__link.active { color: var(--black); }
 .nav__cta { margin-left: 0.5rem; }
+.nav__login { font-weight: 600; color: var(--black); }
 
 /* Mobile nav */
 .nav__hamburger {

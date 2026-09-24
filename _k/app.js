@@ -72,7 +72,7 @@
       h("h3", {}, "Add a person"), errBox,
       h("div", { class: "row2" },
         h("div", { class: "fld" }, h("label", { class: "lab", for: "nname" }, "Name"), h("input", { class: "inp", id: "nname", autocomplete: "off" })),
-        h("div", { class: "fld" }, h("label", { class: "lab", for: "nemail" }, "Email"), h("input", { class: "inp", id: "nemail", type: "email", autocomplete: "off" }))),
+        h("div", { class: "fld" }, h("label", { class: "lab", for: "nemail" }, "Email"), h("select", { class: "inp", id: "nemail" }))),
       h("div", { class: "row2" },
         h("div", { class: "fld" }, h("label", { class: "lab", for: "nclient" }, "Client"),
           h("select", { class: "inp", id: "nclient" }, h("option", { value: "riverworks" }, "Buffalo RiverWorks"), h("option", { value: "kliento" }, "Kliento"))),
@@ -80,7 +80,7 @@
           h("select", { class: "inp", id: "nrole" }, h("option", { value: "member" }, "Member"), h("option", { value: "admin" }, "Admin, like you")))),
       h("div", { class: "fld" }, h("label", { class: "lab", for: "npw" }, "Password you give them"),
         h("div", { class: "pwrow" }, pw, h("button", { class: "btn plain", type: "button", onclick: () => { pw.value = strongPassword(); } }, "Make one"))),
-      h("p", { class: "note" }, "They sign in with this once, confirm a code sent to their email, then save a passkey."),
+      h("p", { class: "note" }, "Only the people on the allowed list can get an account. They sign in with this password once, confirm a code sent to their email, then save a passkey."),
       h("button", { class: "btn primary", type: "submit" }, "Add person"));
     form.addEventListener("submit", async (e) => {
       e.preventDefault(); errBox.hidden = true;
@@ -95,6 +95,12 @@
     view.append(h("div", { class: "tbar" }, h("span", { class: "note" }, "Only you can see this page.")), wrap, form, myPasskeyPanel());
 
     const data = await getJ("/api/admin/users");
+    // Only emails on the allowed list can be picked; the server and database enforce the same rule.
+    const sel = $("nemail");
+    if (!data.available.length) { sel.append(h("option", { value: "" }, "Everyone on the allowed list has an account")); sel.disabled = true; }
+    for (const a of data.available) sel.append(h("option", { value: a.email }, a.name + " (" + a.email + ")"));
+    sel.addEventListener("change", () => { const a = data.available.find((x) => x.email === sel.value); if (a && !$("nname").value) $("nname").value = a.name; });
+    if (data.available[0] && !$("nname").value) $("nname").value = data.available[0].name;
     for (const u of data.users) {
       const locked = u.locked_until > Date.now() / 1000;
       const status = u.status !== "active" ? h("span", { class: "pill gray" }, h("i"), "Off")
