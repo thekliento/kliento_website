@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Sign in · Kliento Portal</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/_k/portal.css">
+<script src="/_k/webauthn.js" defer></script>
+<script src="/_k/login.js" defer></script>
+</head>
+<body>
+<main class="auth">
+  <div class="authbox">
+    <div class="wordmark"><b>kliento</b><span>portal</span></div>
+
+    <section class="card" id="vPasskey">
+      <h1>Sign in</h1>
+      <p class="sub">Use Face ID, Touch ID or your phone.</p>
+      <p class="err" id="pkErr" role="alert" hidden></p>
+      <button class="btn primary wide" id="pkBtn" type="button">Sign in with passkey</button>
+      <label class="chk"><input type="checkbox" id="remember1" checked> Keep me signed in for 30 days</label>
+      <div class="alt" id="firstTime">First time here? <button class="linkbtn" type="button" data-go="vEmail">Sign in with email and password</button></div>
+      <div class="alt" id="fallback" hidden>Passkey not working? <button class="linkbtn" type="button" data-go="vEmail">Sign in with email instead</button></div>
+    </section>
+
+    <section class="card" id="vEmail" hidden>
+      <h1>Sign in with email</h1>
+      <p class="sub">Use the email and password Camilo gave you. We'll email you a code to confirm it's you.</p>
+      <p class="err" id="emErr" role="alert" hidden></p>
+      <form id="emForm" novalidate>
+        <div class="fld"><label class="lab" for="email">Email</label><input class="inp" id="email" type="email" autocomplete="username" required></div>
+        <div class="fld"><label class="lab" for="password">Password</label><input class="inp" id="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn primary wide" type="submit" id="emBtn">Continue</button>
+      </form>
+      <div class="alt"><button class="linkbtn" type="button" data-go="vPasskey">Back to passkey sign-in</button></div>
+    </section>
+
+    <section class="card" id="vCode" hidden>
+      <h1>Check your email</h1>
+      <p class="sub">We sent a 6-digit code to <b id="codeTo"></b>. It works for 10 minutes.</p>
+      <p class="err" id="cdErr" role="alert" hidden></p>
+      <form id="cdForm" novalidate>
+        <div class="fld"><label class="lab" for="code">Code</label><input class="inp code" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required></div>
+        <button class="btn primary wide" type="submit" id="cdBtn">Verify</button>
+        <label class="chk"><input type="checkbox" id="remember2" checked> Keep me signed in for 30 days</label>
+      </form>
+    </section>
+
+    <section class="card" id="vEnroll" hidden>
+      <h1>Save a passkey</h1>
+      <p class="sub">Your phone or computer saves it. Next time you sign in with Face ID, Touch ID or your phone, no email needed.</p>
+      <p class="err" id="enErr" role="alert" hidden></p>
+      <button class="btn primary wide" id="enBtn" type="button">Create my passkey</button>
+      <div class="alt" id="enSkip" hidden><button class="linkbtn" type="button" id="skipBtn">Not now, go to the portal</button></div>
+    </section>
+
+    <p class="foot">Private portal for Kliento clients. Accounts are made by Kliento.</p>
+  </div>
+</main>
+</body>
+</html>

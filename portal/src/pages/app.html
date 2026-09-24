@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Kliento Portal</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/_k/portal.css">
+<script src="/_k/webauthn.js" defer></script>
+<script src="/_k/app.js" defer></script>
+</head>
+<body>
+<div class="app">
+  <aside class="side" aria-label="Portal menu">
+    <div class="logo"><b>kliento</b><span>portal</span></div>
+    <nav class="navg" id="navMain"></nav>
+    <div class="navg" id="navLater">
+      <span class="nv dim">Receptionist<span class="soon">later</span></span>
+      <span class="nv dim">Morning checks<span class="soon">later</span></span>
+    </div>
+    <nav class="navg" id="navAdmin" hidden></nav>
+    <div class="spacer"></div>
+    <div class="navg"><a class="nv" href="#" id="signOut">Sign out</a></div>
+  </aside>
+  <div class="main">
+    <header class="hdr">
+      <div class="acct"><span class="av" id="clientAv">BR</span><span id="clientName">Buffalo RiverWorks</span></div>
+      <div class="user"><span class="av" id="userAv"></span><span id="userName"></span></div>
+    </header>
+    <div class="crumb" id="crumb"></div>
+    <main id="view"></main>
+  </div>
+</div>
+</body>
+</html>

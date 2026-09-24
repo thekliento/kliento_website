@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Set your password · Kliento Portal</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/_k/portal.css">
+<script src="/_k/webauthn.js" defer></script>
+<script src="/_k/setup.js" defer></script>
+</head>
+<body>
+<main class="auth">
+  <div class="authbox">
+    <div class="wordmark"><b>kliento</b><span>portal</span></div>
+    <section class="card" id="vSet">
+      <h1>Set your password</h1>
+      <p class="sub">At least 12 characters. Passwords found in known data breaches are refused.</p>
+      <p class="err" id="stErr" role="alert" hidden></p>
+      <form id="stForm" novalidate>
+        <div class="fld"><label class="lab" for="pw1">New password</label><input class="inp" id="pw1" type="password" autocomplete="new-password" required></div>
+        <div class="fld"><label class="lab" for="pw2">Type it again</label><input class="inp" id="pw2" type="password" autocomplete="new-password" required></div>
+        <button class="btn primary wide" id="stBtn" type="submit">Save password</button>
+      </form>
+    </section>
+    <section class="card" id="vDone" hidden>
+      <h1>Password saved</h1>
+      <p class="sub">Now sign in with it. We'll email you a code, then you'll save a passkey.</p>
+      <a class="btn primary wide" href="/login" id="toLogin">Go to sign in</a>
+    </section>
+  </div>
+</main>
+</body>
+</html>

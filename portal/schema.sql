@@ -1,0 +1,68 @@
+-- Kliento Portal. Every row carries client so a second client reuses the same tables.
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  client TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('admin','member')),
+  modules TEXT NOT NULL DEFAULT '["tasks"]',
+  pw_hash TEXT,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','disabled')),
+  email_verified_at INTEGER,
+  failed_pw INTEGER NOT NULL DEFAULT 0,
+  locked_until INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  created_by TEXT
+);
+
+CREATE TABLE IF NOT EXISTS passkeys (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  public_key TEXT NOT NULL,
+  counter INTEGER NOT NULL DEFAULT 0,
+  transports TEXT,
+  label TEXT,
+  created_at INTEGER NOT NULL,
+  last_used_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS passkeys_user ON passkeys(user_id);
+
+-- stage: enroll = may only add a passkey; full = signed in
+CREATE TABLE IF NOT EXISTS sessions (
+  id_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  stage TEXT NOT NULL CHECK (stage IN ('enroll','full')),
+  remember INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  last_seen INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  ip TEXT,
+  ua TEXT
+);
+CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
+
+-- short-lived login steps: email_code, passkey_auth, passkey_reg, setup
+CREATE TABLE IF NOT EXISTS pending (
+  id_hash TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,
+  user_id TEXT,
+  secret_hash TEXT,
+  challenge TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  data TEXT,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts INTEGER NOT NULL,
+  user_id TEXT,
+  ip TEXT,
+  method TEXT,
+  path TEXT,
+  action TEXT,
+  status INTEGER,
+  detail TEXT
+);
+CREATE INDEX IF NOT EXISTS audit_ts ON audit(ts);
