@@ -29,14 +29,13 @@ export type Session = { user: User; stage: "enroll" | "full"; idHash: string; re
 
 export type Ctx = { req: Request; env: Env; exec: ExecutionContext; ip: string };
 
+export function auditStmt(c: Ctx, userId: string | null, action: string, status: number, detail = ""): D1PreparedStatement {
+  return c.env.DB.prepare("INSERT INTO audit (ts,user_id,ip,method,path,action,status,detail) VALUES (?,?,?,?,?,?,?,?)")
+    .bind(NOW(), userId, c.ip, c.req.method, new URL(c.req.url).pathname, action, status, detail.slice(0, 500));
+}
+
 export function audit(c: Ctx, userId: string | null, action: string, status: number, detail = ""): void {
-  const u = new URL(c.req.url);
-  c.exec.waitUntil(
-    c.env.DB.prepare("INSERT INTO audit (ts,user_id,ip,method,path,action,status,detail) VALUES (?,?,?,?,?,?,?,?)")
-      .bind(NOW(), userId, c.ip, c.req.method, u.pathname, action, status, detail.slice(0, 500))
-      .run()
-      .then(() => undefined),
-  );
+  c.exec.waitUntil(auditStmt(c, userId, action, status, detail).run().then(() => undefined));
 }
 
 export function rp(req: Request, env: Env): { rpID: string; origin: string } | null {

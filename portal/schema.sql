@@ -112,8 +112,15 @@ CREATE TABLE IF NOT EXISTS tasks (
   mail_error TEXT,
   mail_tries INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  locked INTEGER NOT NULL DEFAULT 0,
+  locked_by TEXT,
+  locked_at INTEGER
 );
+-- Databases made before 2026-09-25 got the lock columns with:
+--   ALTER TABLE tasks ADD COLUMN locked INTEGER NOT NULL DEFAULT 0;
+--   ALTER TABLE tasks ADD COLUMN locked_by TEXT;
+--   ALTER TABLE tasks ADD COLUMN locked_at INTEGER;
 CREATE INDEX IF NOT EXISTS tasks_client ON tasks(client, status);
 INSERT INTO sqlite_sequence (name, seq) SELECT 'tasks', 1000 WHERE NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'tasks');
 
@@ -142,3 +149,47 @@ CREATE TABLE IF NOT EXISTS files (
 );
 CREATE INDEX IF NOT EXISTS files_task ON files(task_id);
 CREATE INDEX IF NOT EXISTS files_stray ON files(uploaded_by, created_at);
+
+-- 2026-09-25: chat on every task. Plain text only; the page escapes it when it shows it.
+CREATE TABLE IF NOT EXISTS task_comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client TEXT NOT NULL,
+  task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  body TEXT NOT NULL CHECK (length(body) BETWEEN 1 AND 4000),
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS task_comments_task ON task_comments(task_id, id);
+CREATE INDEX IF NOT EXISTS task_comments_user ON task_comments(user_id, created_at);
+CREATE INDEX IF NOT EXISTS task_events_client ON task_events(client, id);
+CREATE INDEX IF NOT EXISTS tasks_client_updated ON tasks(client, status, updated_at);
+
+-- Email alerts about a task: one row per try, so each person gets at most one alert
+-- a task every 5 minutes. ok = 1 sent, 0 failed or still sending.
+CREATE TABLE IF NOT EXISTS notify_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client TEXT NOT NULL,
+  task_id INTEGER NOT NULL,
+  recipient TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  ok INTEGER NOT NULL DEFAULT 0,
+  error TEXT,
+  created_at INTEGER NOT NULL,
+  actor TEXT
+);
+-- The live database got actor later the same day with: ALTER TABLE notify_log ADD COLUMN actor TEXT;
+CREATE INDEX IF NOT EXISTS notify_log_recent ON notify_log(recipient, task_id, created_at);
+CREATE INDEX IF NOT EXISTS notify_log_day ON notify_log(created_at);
+CREATE INDEX IF NOT EXISTS notify_log_actor ON notify_log(actor, created_at);
+
+-- The morning website check from Camilo's Mac (verify-live-tracking.sh), signed with HEALTH_KEY.
+-- One row a run; the same run sent twice is stored once.
+CREATE TABLE IF NOT EXISTS health_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client TEXT NOT NULL,
+  ran_at INTEGER NOT NULL,
+  ok INTEGER NOT NULL,
+  checks TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  UNIQUE (client, ran_at)
+);

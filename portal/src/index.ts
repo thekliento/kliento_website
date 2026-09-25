@@ -7,6 +7,7 @@ import {
   passkeyRegisterVerify, passwordStep, setupStep, verifyStep, type Ctx,
 } from "./auth";
 import { adminRoute } from "./admin";
+import { getHealth, healthReport } from "./health";
 import { mailFile, tasksCron, tasksRoute } from "./tasks";
 import { DAY, NOW, clientIp, html, json, secure } from "./lib";
 
@@ -48,6 +49,17 @@ function safeNext(raw: string | null): string {
 
 async function api(c: Ctx, path: string): Promise<Response> {
   const method = c.req.method;
+  // The morning website check posts here from Camilo's Mac. No cookie and no session: the
+  // HMAC signature is the only key, so the browser CSRF check below does not apply.
+  if (path === "/api/health/report") {
+    if (method !== "POST") return json({ error: "Method not allowed." }, 405);
+    const { success } = await c.env.RL_AUTH.limit({ key: c.ip });
+    if (!success) {
+      audit(c, null, "ratelimited", 429, path);
+      return json({ error: "Too many tries. Wait a minute and try again." }, 429, { "Retry-After": "60" });
+    }
+    return healthReport(c);
+  }
   if (method !== "GET" && !sameOrigin(c.req)) {
     audit(c, null, "csrf.blocked", 403);
     return json({ error: "Blocked." }, 403);
@@ -90,7 +102,8 @@ async function api(c: Ctx, path: string): Promise<Response> {
   if (s.stage !== "full") return json({ error: "Add your passkey first." }, 403);
   audit(c, s.user.id, "api", 200, `${method} ${path}`);
   if (path.startsWith("/api/admin/")) return adminRoute(c, s, path);
-  if (path === "/api/tasks" || path.startsWith("/api/tasks/") || path === "/api/requests" || path === "/api/files" || path.startsWith("/api/files/")) {
+  if (path === "/api/health" && method === "GET") return getHealth(c, s);
+  if (path === "/api/home" || path === "/api/tasks" || path.startsWith("/api/tasks/") || path === "/api/requests" || path === "/api/files" || path.startsWith("/api/files/")) {
     return tasksRoute(c, s, path);
   }
   return json({ error: "Not found." }, 404);
@@ -139,6 +152,8 @@ export default {
         env.DB.prepare("DELETE FROM pending WHERE expires_at < ?").bind(now),
         env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(now),
         env.DB.prepare("DELETE FROM audit WHERE ts < ?").bind(now - 365 * DAY),
+        env.DB.prepare("DELETE FROM notify_log WHERE created_at < ?").bind(now - 30 * DAY),
+        env.DB.prepare("DELETE FROM health_reports WHERE created_at < ?").bind(now - 400 * DAY),
       ]).then(() => undefined),
     );
     exec.waitUntil(tasksCron(env, exec));

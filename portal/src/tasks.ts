@@ -1,6 +1,7 @@
 import { audit, type Ctx, type Session } from "./auth";
 import { DAY, HOUR, NOW, escapeHtml, hmac, isEmail, json, randomId, safeEqual } from "./lib";
 import { sendMail } from "./mail";
+import { notifyTask, type Actor } from "./notify";
 
 // Web & IT tasks, the Send a request pop-up, and private files.
 // Every query is scoped to one client; members only ever see their own client.
@@ -26,11 +27,18 @@ const REQUESTS_PER_DAY = 20; // per person
 const REQUESTS_ALL_PER_DAY = 100; // everyone together, so login codes always have mail quota
 const MAIL_TRIES_MAX = 5;
 const MAILFILE_TTL = 30 * 60;
+const COMMENT_MAX = 4000;
+const COMMENTS_PER_DAY = 300; // per person
+const TASKS_PER_DAY = 100; // per person, for "Add a task"
+// A locked task: only admins change these. Anyone can still comment and add files.
+const LOCKED_FIELDS = ["title", "status", "priority", "owner_id", "due_date"];
+const LOCKED_MSG = "Camilo locked this task.";
 
 type Task = {
   id: number; client: string; title: string; body_html: string; body_text: string; status: string; priority: string;
   owner_id: string | null; due_date: string | null; requested_by: string | null; cc: string; source: string;
   mail_status: string; mail_error: string | null; mail_tries: number; created_at: number; updated_at: number;
+  locked: number; locked_by: string | null; locked_at: number | null;
 };
 type FileRow = { id: string; client: string; task_id: number | null; uploaded_by: string; name: string; mime: string; size: number; created_at: number };
 
@@ -68,8 +76,22 @@ async function readJson<T>(req: Request, max = 256 * 1024): Promise<T | null> {
 function clientFor(c: Ctx, s: Session): string | null {
   if (s.user.role !== "admin") return s.user.client;
   const q = new URL(c.req.url).searchParams.get("client") || "riverworks";
-  return q in CLIENT_NAME ? q : null;
+  return Object.hasOwn(CLIENT_NAME, q) ? q : null;
 }
+
+const actorOf = (s: Session): Actor => ({ id: s.user.id, name: s.user.name, email: s.user.email, role: s.user.role });
+
+// Monday 00:00 this week in Buffalo, as unix seconds ("Done this week").
+const weekFmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", minute: "numeric", second: "numeric", hourCycle: "h23" });
+export function weekStart(now: number): number {
+  const p: Record<string, string> = {};
+  for (const x of weekFmt.formatToParts(new Date(now * 1000))) p[x.type] = x.value;
+  const dow = Math.max(0, ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(p.weekday));
+  return now - dow * DAY - Number(p.hour) * HOUR - Number(p.minute) * 60 - Number(p.second);
+}
+
+// When a done task was last moved to Done (a task added straight into Done counts from when it was added).
+const DONE_AT = "COALESCE((SELECT MAX(e.ts) FROM task_events e WHERE e.task_id = t.id AND e.kind = 'status' AND e.to_val = 'done'), t.created_at)";
 
 function validDate(d: unknown): string | null | undefined {
   if (d === null || d === "") return null;
@@ -157,7 +179,7 @@ export function htmlToText(html: string): string {
     .replace(/<a [^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, h: string, t: string) => `${t} (${h})`)
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&")
-    .replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim()
+    .split("\n").map((l) => l.trimEnd()).join("\n").replace(/\n{3,}/g, "\n\n").trim()
     .slice(0, 20_000);
 }
 
@@ -366,9 +388,11 @@ async function owners(env: Env, client: string) {
 
 async function listTasks(c: Ctx, s: Session, client: string): Promise<Response> {
   const rows = await c.env.DB.prepare(
-    `SELECT t.id, t.title, t.status, t.priority, t.owner_id, t.due_date, t.requested_by, t.source, t.mail_status, t.created_at, t.updated_at,
+    `SELECT t.id, t.title, t.status, t.priority, t.owner_id, t.due_date, t.requested_by, t.source, t.mail_status, t.created_at, t.updated_at, t.locked,
        o.name AS owner_name, r.name AS by_name,
-       (SELECT COUNT(*) FROM files f WHERE f.task_id = t.id) AS files
+       (SELECT COUNT(*) FROM files f WHERE f.task_id = t.id) AS files,
+       (SELECT COUNT(*) FROM task_comments m WHERE m.task_id = t.id) AS comments,
+       CASE WHEN t.status = 'done' THEN ${DONE_AT} END AS done_at
      FROM tasks t LEFT JOIN users o ON o.id = t.owner_id LEFT JOIN users r ON r.id = t.requested_by
      WHERE t.client = ? AND (t.status != 'done' OR t.updated_at > ?)
      ORDER BY t.id DESC LIMIT 500`,
@@ -376,7 +400,7 @@ async function listTasks(c: Ctx, s: Session, client: string): Promise<Response> 
   return json({
     client, clientName: CLIENT_NAME[client],
     clients: s.user.role === "admin" ? Object.entries(CLIENT_NAME).map(([id, name]) => ({ id, name })) : undefined,
-    tasks: rows.results, owners: await owners(c.env, client), me: s.user.id, now: NOW(),
+    tasks: rows.results, owners: await owners(c.env, client), me: s.user.id, admin: s.user.role === "admin", now: NOW(), week_start: weekStart(NOW()),
   });
 }
 
@@ -389,13 +413,20 @@ async function taskFor(c: Ctx, s: Session, id: number): Promise<Task | null> {
 async function getTask(c: Ctx, s: Session, id: number): Promise<Response> {
   const t = await taskFor(c, s, id);
   if (!t) return json({ error: "No such task." }, 404);
-  const [files, events, people] = await Promise.all([
-    c.env.DB.prepare("SELECT id, name, size, created_at FROM files WHERE task_id = ? ORDER BY created_at").bind(id).all(),
-    c.env.DB.prepare("SELECT e.ts, e.kind, e.from_val, e.to_val, u.name AS who FROM task_events e LEFT JOIN users u ON u.id = e.user_id WHERE e.task_id = ? ORDER BY e.id").bind(id).all(),
-    c.env.DB.prepare("SELECT (SELECT name FROM users WHERE id = ?) AS owner_name, (SELECT name FROM users WHERE id = ?) AS by_name").bind(t.owner_id, t.requested_by).first(),
+  const [files, events, people, comments] = await c.env.DB.batch([
+    c.env.DB.prepare("SELECT id, name, size, created_at FROM files WHERE task_id = ? ORDER BY created_at").bind(id),
+    c.env.DB.prepare("SELECT e.ts, e.kind, e.from_val, e.to_val, u.name AS who FROM task_events e LEFT JOIN users u ON u.id = e.user_id WHERE e.task_id = ? ORDER BY e.id DESC LIMIT 300").bind(id),
+    c.env.DB.prepare("SELECT (SELECT name FROM users WHERE id = ?) AS owner_name, (SELECT name FROM users WHERE id = ?) AS by_name, (SELECT name FROM users WHERE id = ?) AS locked_by_name")
+      .bind(t.owner_id, t.requested_by, t.locked_by),
+    // The newest 200 messages, shown oldest first.
+    c.env.DB.prepare("SELECT m.id, m.body, m.created_at, m.user_id, u.name AS who FROM task_comments m LEFT JOIN users u ON u.id = m.user_id WHERE m.task_id = ? ORDER BY m.id DESC LIMIT 200").bind(id),
   ]);
   audit(c, s.user.id, "task.viewed", 200, `#${id}`);
-  return json({ task: { ...t, ...people, cc: JSON.parse(t.cc || "[]") }, files: files.results, events: events.results, owners: await owners(c.env, t.client) });
+  return json({
+    task: { ...t, ...(people.results[0] as object), cc: JSON.parse(t.cc || "[]") },
+    files: files.results, events: events.results.reverse(), comments: comments.results.reverse(),
+    owners: await owners(c.env, t.client), me: s.user.id, admin: s.user.role === "admin",
+  });
 }
 
 async function ownerOk(env: Env, client: string, ownerId: unknown): Promise<string | null | undefined> {
@@ -418,9 +449,15 @@ async function createTask(c: Ctx, s: Session, client: string): Promise<Response>
   if (owner === undefined) return json({ error: "Pick an owner from the list." }, 400);
   const now = NOW();
   const row = await c.env.DB.prepare(
-    "INSERT INTO tasks (client,title,status,priority,owner_id,due_date,requested_by,source,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'manual',?,?) RETURNING id",
-  ).bind(client, title, status, priority, owner, due, s.user.id, now, now).first<{ id: number }>();
-  const id = row!.id;
+    `INSERT INTO tasks (client,title,status,priority,owner_id,due_date,requested_by,source,created_at,updated_at)
+     SELECT ?,?,?,?,?,?,?,'manual',?,? WHERE (SELECT COUNT(*) FROM tasks WHERE requested_by = ? AND created_at > ?) < ?
+     RETURNING id`,
+  ).bind(client, title, status, priority, owner, due, s.user.id, now, now, s.user.id, now - DAY, TASKS_PER_DAY).first<{ id: number }>();
+  if (!row) {
+    audit(c, s.user.id, "task.create_capped", 429);
+    return json({ error: "That's a lot of tasks for one day. Email Camilo instead." }, 429);
+  }
+  const id = row.id;
   await c.env.DB.prepare("INSERT INTO task_events (client,task_id,user_id,ts,kind,to_val) VALUES (?,?,?,?,'created',?)").bind(client, id, s.user.id, now, title).run();
   audit(c, s.user.id, "task.created", 200, `#${id} ${client} ${title}`);
   return json({ ok: true, id });
@@ -430,7 +467,12 @@ async function updateTask(c: Ctx, s: Session, id: number): Promise<Response> {
   const t = await taskFor(c, s, id);
   if (!t) return json({ error: "No such task." }, 404);
   const b = await readJson<Record<string, unknown>>(c.req);
-  if (!b) return json({ error: "Something was off with that. Try again." }, 400);
+  if (!b || typeof b !== "object" || Array.isArray(b)) return json({ error: "Something was off with that. Try again." }, 400);
+  const admin = s.user.role === "admin";
+  if (t.locked && !admin && LOCKED_FIELDS.some((k) => k in b)) {
+    audit(c, s.user.id, "task.locked_refused", 423, `#${id}`);
+    return json({ error: LOCKED_MSG }, 423);
+  }
   const changes: [string, string | null, string | null][] = [];
   if ("title" in b) {
     const v = cleanTitle(b.title);
@@ -457,12 +499,25 @@ async function updateTask(c: Ctx, s: Session, id: number): Promise<Response> {
   }
   if (!changes.length) return json({ ok: true, changed: 0 });
   const now = NOW();
-  const stmts = changes.map(([f, , v]) => c.env.DB.prepare(`UPDATE tasks SET ${f} = ?, updated_at = ? WHERE id = ?`).bind(v, now, id));
+  // For non-admins every statement also requires the task to be unlocked, so a lock that lands
+  // between the check above and this batch still wins (the batch is one transaction).
+  const guard = admin ? "" : " AND locked = 0";
+  const stmts = changes.map(([f, , v]) => c.env.DB.prepare(`UPDATE tasks SET ${f} = ?, updated_at = ? WHERE id = ?${guard}`).bind(v, now, id));
   for (const [f, from, to] of changes) {
-    stmts.push(c.env.DB.prepare("INSERT INTO task_events (client,task_id,user_id,ts,kind,from_val,to_val) VALUES (?,?,?,?,?,?,?)").bind(t.client, id, s.user.id, now, f, from, to));
+    stmts.push(c.env.DB.prepare(`INSERT INTO task_events (client,task_id,user_id,ts,kind,from_val,to_val) SELECT ?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM tasks WHERE id = ?${guard})`)
+      .bind(t.client, id, s.user.id, now, f, from, to, id));
   }
-  await c.env.DB.batch(stmts);
+  const res = await c.env.DB.batch(stmts);
+  if ((res[0]?.meta.changes ?? 0) === 0) {
+    audit(c, s.user.id, "task.locked_refused", 423, `#${id}`);
+    return json({ error: LOCKED_MSG }, 423);
+  }
   audit(c, s.user.id, "task.updated", 200, `#${id} ` + changes.map(([f, a, b2]) => `${f}: ${a ?? "none"} > ${b2 ?? "none"}`).join("; "));
+  const moved = changes.find(([f]) => f === "status");
+  if (moved?.[2]) {
+    const title = changes.find(([f]) => f === "title")?.[2] ?? t.title;
+    c.exec.waitUntil(notifyTask(c, { id, client: t.client, title, requested_by: t.requested_by }, actorOf(s), { kind: "status", status: moved[2] }));
+  }
   return json({ ok: true, changed: changes.length });
 }
 
@@ -560,6 +615,106 @@ async function addFiles(c: Ctx, s: Session, id: number): Promise<Response> {
   return json({ ok: true });
 }
 
+// ── chat on a task ──────────────────────────────────────────────────────────
+// Stored as plain text; the page escapes it when it shows it, and the mailer escapes it too.
+function cleanComment(v: string): string {
+  return v.replace(/\r\n?/g, "\n")
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, "")
+    .split("\n").map((l) => l.trimEnd()).join("\n")
+    .replace(/\n{4,}/g, "\n\n\n").trim();
+}
+
+async function addComment(c: Ctx, s: Session, id: number): Promise<Response> {
+  const t = await taskFor(c, s, id);
+  if (!t) return json({ error: "No such task." }, 404);
+  const b = await readJson<{ body?: unknown }>(c.req, 32 * 1024);
+  if (typeof b?.body !== "string" || !b.body.trim()) return json({ error: "Write a message first." }, 400);
+  // Checked on the raw text before any cleanup, so a huge message costs almost nothing.
+  if (b.body.length > COMMENT_MAX * 2) return json({ error: "Keep messages under 4,000 characters." }, 400);
+  const text = cleanComment(b.body);
+  if (!text) return json({ error: "Write a message first." }, 400);
+  if (text.length > COMMENT_MAX) return json({ error: "Keep messages under 4,000 characters." }, 400);
+  const now = NOW();
+  const row = await c.env.DB.prepare(
+    `INSERT INTO task_comments (client, task_id, user_id, body, created_at)
+     SELECT ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM task_comments WHERE user_id = ? AND created_at > ?) < ?
+     RETURNING id`,
+  ).bind(t.client, id, s.user.id, text, now, s.user.id, now - DAY, COMMENTS_PER_DAY).first<{ id: number }>();
+  if (!row) {
+    audit(c, s.user.id, "task.comment_capped", 429, `#${id}`);
+    return json({ error: "That's a lot of messages for one day. Email Camilo instead." }, 429);
+  }
+  await c.env.DB.batch([
+    c.env.DB.prepare("UPDATE tasks SET updated_at = ? WHERE id = ?").bind(now, id),
+    c.env.DB.prepare("INSERT INTO task_events (client,task_id,user_id,ts,kind,to_val) VALUES (?,?,?,?,'comment',?)").bind(t.client, id, s.user.id, now, String(row.id)),
+  ]);
+  audit(c, s.user.id, "task.commented", 200, `#${id} message ${row.id}, ${text.length} characters`);
+  c.exec.waitUntil(notifyTask(c, t, actorOf(s), { kind: "comment", comment: text }));
+  return json({ ok: true, id: row.id });
+}
+
+// ── lock: only admins lock or unlock ────────────────────────────────────────
+async function setLock(c: Ctx, s: Session, id: number): Promise<Response> {
+  if (s.user.role !== "admin") {
+    audit(c, s.user.id, "task.lock_denied", 403, `#${id}`);
+    return json({ error: "Only Camilo can lock or unlock a task." }, 403);
+  }
+  const t = await taskFor(c, s, id);
+  if (!t) return json({ error: "No such task." }, 404);
+  const b = await readJson<{ locked?: unknown }>(c.req, 1024);
+  if (typeof b?.locked !== "boolean") return json({ error: "Something was off with that. Try again." }, 400);
+  const want = b.locked ? 1 : 0;
+  if (t.locked === want) return json({ ok: true, locked: b.locked });
+  const now = NOW();
+  await c.env.DB.batch([
+    c.env.DB.prepare("UPDATE tasks SET locked = ?, locked_by = ?, locked_at = ?, updated_at = ? WHERE id = ?").bind(want, want ? s.user.id : null, want ? now : null, now, id),
+    c.env.DB.prepare("INSERT INTO task_events (client,task_id,user_id,ts,kind) VALUES (?,?,?,?,?)").bind(t.client, id, s.user.id, now, want ? "locked" : "unlocked"),
+  ]);
+  audit(c, s.user.id, want ? "task.locked" : "task.unlocked", 200, `#${id}`);
+  return json({ ok: true, locked: b.locked });
+}
+
+// ── Home: four counts, the top items under each, and recent activity ───────
+type HomeItem = { id: number; title: string; status: string; priority: string; due_date: string | null; by_name: string | null; locked: number; comments: number; done_at?: number };
+const RANK = "CASE t.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END";
+const HOME_COLS = "t.id, t.title, t.status, t.priority, t.due_date, t.locked, r.name AS by_name";
+// Message counts are added only to the few rows that are returned.
+const withCounts = (inner: string) => `SELECT x.*, (SELECT COUNT(*) FROM task_comments m WHERE m.task_id = x.id) AS comments FROM (${inner}) x`;
+const topOpen = (status: string) => withCounts(
+  `SELECT ${HOME_COLS} FROM tasks t LEFT JOIN users r ON r.id = t.requested_by WHERE t.client = ?1 AND t.status = '${status}'
+   ORDER BY ${RANK}, COALESCE(t.due_date, '9999'), t.id DESC LIMIT 5`);
+const DONE_WEEK = `SELECT ${HOME_COLS}, ${DONE_AT} AS done_at FROM tasks t LEFT JOIN users r ON r.id = t.requested_by
+   WHERE t.client = ?1 AND t.status = 'done' AND t.updated_at >= ?2`;
+
+async function homeData(c: Ctx, s: Session, client: string): Promise<Response> {
+  const now = NOW();
+  const week = weekStart(now);
+  const [counts, open, done, doneCount, feed] = await c.env.DB.batch([
+    c.env.DB.prepare("SELECT status, COUNT(*) AS n FROM tasks WHERE client = ? AND status IN ('new','waiting','doing') GROUP BY status").bind(client),
+    c.env.DB.prepare(`${topOpen("new")} UNION ALL ${topOpen("waiting")} UNION ALL ${topOpen("doing")}`).bind(client),
+    c.env.DB.prepare(withCounts(`SELECT * FROM (${DONE_WEEK}) WHERE done_at >= ?2 ORDER BY done_at DESC LIMIT 5`)).bind(client, week),
+    c.env.DB.prepare(`SELECT COUNT(*) AS n FROM (${DONE_WEEK}) WHERE done_at >= ?2`).bind(client, week),
+    c.env.DB.prepare(`SELECT e.id, e.ts, e.kind, e.to_val, e.task_id, t.title, u.name AS who,
+        CASE WHEN e.kind = 'comment' THEN (SELECT substr(m.body, 1, 160) FROM task_comments m WHERE m.id = CAST(e.to_val AS INTEGER)) END AS excerpt
+      FROM task_events e JOIN tasks t ON t.id = e.task_id LEFT JOIN users u ON u.id = e.user_id
+      WHERE e.client = ? AND e.kind IN ('comment','status') ORDER BY e.id DESC LIMIT 15`).bind(client),
+  ]);
+  const n = Object.fromEntries((counts.results as { status: string; n: number }[]).map((r) => [r.status, r.n]));
+  const rows = open.results as HomeItem[];
+  const card = (key: string, count: number, items: HomeItem[]) => ({ key, label: key === "doneweek" ? "Done this week" : STATUS_LABEL[key], count, items });
+  return json({
+    client, clientName: CLIENT_NAME[client],
+    clients: s.user.role === "admin" ? Object.entries(CLIENT_NAME).map(([id, name]) => ({ id, name })) : undefined,
+    cards: [
+      card("new", n.new ?? 0, rows.filter((x) => x.status === "new")),
+      card("waiting", n.waiting ?? 0, rows.filter((x) => x.status === "waiting")),
+      card("doing", n.doing ?? 0, rows.filter((x) => x.status === "doing")),
+      card("doneweek", (doneCount.results[0] as { n: number } | undefined)?.n ?? 0, done.results as HomeItem[]),
+    ],
+    activity: feed.results, week_start: week, now,
+  });
+}
+
 export async function tasksRoute(c: Ctx, s: Session, path: string): Promise<Response> {
   const mods: string[] = JSON.parse(s.user.modules || "[]");
   if (!mods.includes("tasks") && s.user.role !== "admin") {
@@ -570,6 +725,7 @@ export async function tasksRoute(c: Ctx, s: Session, path: string): Promise<Resp
   const client = clientFor(c, s);
   if (!client) return json({ error: "Unknown client." }, 400);
 
+  if (path === "/api/home" && method === "GET") return homeData(c, s, client);
   if (path === "/api/tasks" && method === "GET") return listTasks(c, s, client);
   if (path === "/api/tasks" && method === "POST") return createTask(c, s, client);
   if (path === "/api/requests" && method === "POST") return sendRequest(c, s, client);
@@ -578,13 +734,15 @@ export async function tasksRoute(c: Ctx, s: Session, path: string): Promise<Resp
   const fm = path.match(/^\/api\/files\/([0-9a-f-]{36})$/);
   if (fm && method === "GET") return downloadFile(c, s, fm[1]);
 
-  const tm = path.match(/^\/api\/tasks\/(\d{1,9})(\/resend|\/files)?$/);
+  const tm = path.match(/^\/api\/tasks\/(\d{1,9})(\/resend|\/files|\/comments|\/lock)?$/);
   if (tm) {
     const id = Number(tm[1]);
     if (!tm[2] && method === "GET") return getTask(c, s, id);
     if (!tm[2] && method === "POST") return updateTask(c, s, id);
     if (tm[2] === "/resend" && method === "POST") return resend(c, s, id);
     if (tm[2] === "/files" && method === "POST") return addFiles(c, s, id);
+    if (tm[2] === "/comments" && method === "POST") return addComment(c, s, id);
+    if (tm[2] === "/lock" && method === "POST") return setLock(c, s, id);
   }
   return json({ error: "Not found." }, 404);
 }

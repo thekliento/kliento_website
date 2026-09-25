@@ -14,6 +14,9 @@ var FILE_PREFIX = 'https://thekliento.com/api/mailfile/';
 var ATTACH_MAX = 18 * 1024 * 1024;
 // Verify links only ever point at the portal's own /verify page.
 var VERIFY_PREFIX = 'https://thekliento.com/verify#t=';
+// Task alerts (type notify) only go to one address on these domains, and only link into the portal.
+var NOTIFY_DOMAINS = ['buffaloriverworks.com', 'pearlstreetgrill.com', 'thekliento.com'];
+var APP_PREFIX = 'https://thekliento.com/app/';
 
 function doPost(e) {
   try {
@@ -67,6 +70,35 @@ function doPost(e) {
                   '<p>It works for 24 hours. If you did not just make an account, ignore this email and tell Camilo.</p>' +
                   '<p style="color:#6c757d">Kliento</p></div>'
       });
+      return out_({ ok: true });
+    }
+
+    if (m.type === 'notify') {
+      var to = String(m.to || '').trim().toLowerCase();
+      var nlink = String(m.link || '');
+      // One plain address (no commas, spaces or brackets), on a client domain, and a portal link.
+      if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(to) || NOTIFY_DOMAINS.indexOf(to.slice(to.lastIndexOf('@') + 1)) < 0 ||
+          nlink.indexOf(APP_PREFIX) !== 0 || !/^[A-Za-z0-9\/?=&._-]{0,200}$/.test(nlink.slice(APP_PREFIX.length))) return out_({ ok: false, error: 'bad notify mail' });
+      var nname = String(m.name || '').slice(0, 80);
+      var what = String(m.text || '').slice(0, 500);
+      var said = String(m.comment || '').slice(0, 4000);
+      var nopts = {
+        to: to,
+        name: FROM_NAME,
+        subject: String(m.subject || 'Kliento Portal update').replace(/[\r\n]+/g, ' ').slice(0, 200),
+        body: 'Hi ' + (nname || 'there') + ',\n\n' + what + (said ? '\n\n' + said : '') +
+              '\n\nOpen the task: ' + nlink + '\n\nAnswer in the portal so everyone sees it.\n\nKliento',
+        htmlBody: '<div style="font-family:Arial,sans-serif;font-size:15px;color:#212529;line-height:1.5">' +
+                  '<p>Hi ' + esc_(nname || 'there') + ',</p><p>' + esc_(what) + '</p>' +
+                  (said ? '<div style="border-left:3px solid #3957EA;padding:2px 0 2px 12px;margin:0 0 14px">' +
+                          esc_(said).replace(/\n/g, '<br>') + '</div>' : '') +
+                  '<p style="margin:20px 0"><a href="' + esc_(nlink) + '" style="background:#3957EA;color:#ffffff;text-decoration:none;' +
+                  'padding:12px 22px;border-radius:6px;font-weight:700;display:inline-block">Open the task</a></p>' +
+                  '<p style="color:#6c757d">Answer in the portal so everyone sees it.<br>Kliento</p></div>'
+      };
+      // A reply by email reaches Camilo instead of this mailer's inbox.
+      if (to !== REQUEST_TO) nopts.replyTo = REQUEST_TO;
+      MailApp.sendEmail(nopts);
       return out_({ ok: true });
     }
 

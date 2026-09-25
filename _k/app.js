@@ -13,7 +13,15 @@
     return el;
   }
   const initials = (n) => (n || "?").split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const first = (n) => (n || "").trim().split(/\s+/)[0] || "";
   const when = (ts) => ts ? new Date(ts * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "never";
+  function ago(ts) {
+    const s = Math.max(0, Math.floor(Date.now() / 1000 - ts));
+    if (s < 60) return "just now";
+    if (s < 3600) { const m = Math.floor(s / 60); return m + (m === 1 ? " minute ago" : " minutes ago"); }
+    if (s < 86400) { const hr = Math.floor(s / 3600); return hr + (hr === 1 ? " hour ago" : " hours ago"); }
+    return when(ts);
+  }
   function toast(msg) { const t = h("div", { class: "toast", role: "status" }, msg); document.body.append(t); setTimeout(() => t.remove(), 2600); }
   async function getJ(path) {
     const r = await fetch(path, { credentials: "same-origin" });
@@ -22,56 +30,84 @@
   }
 
   let me = null;
+  let pageTimer = null;
   const PAGES = {
+    "/app": { title: "Home", crumb: "Home", render: renderHome },
     "/app/tasks": { title: "Web & IT Tasks", crumb: "Web & IT / Tasks", render: renderTasks },
+    "/app/health": { title: "Website health", crumb: "Website / Health", render: renderHealth },
     "/app/people": { title: "People & access", crumb: "Settings / People & access", render: renderPeople, admin: true },
     "/app/activity": { title: "Activity log", crumb: "Settings / Activity log", render: renderActivity, admin: true },
   };
+  const curPath = () => location.pathname.replace(/\/+$/, "") || "/app";
+  const canTasks = () => (me.user.modules || []).includes("tasks") || me.user.role === "admin";
 
   function nav() {
-    const cur = location.pathname;
-    $("navMain").replaceChildren(h("a", { class: "nv" + (cur === "/app/tasks" ? " on" : ""), href: "/app/tasks", "data-link": "" }, "Web & IT"));
+    const cur = curPath();
+    const link = (href, label) => h("a", { class: "nv" + (cur === href ? " on" : ""), href, "data-link": "", "aria-current": cur === href ? "page" : null }, label);
+    $("navMain").replaceChildren(link("/app", "Home"), link("/app/tasks", "Web & IT"), link("/app/health", "Website health"));
     if (me.user.role === "admin") {
       $("navAdmin").hidden = false;
-      $("navAdmin").replaceChildren(
-        h("a", { class: "nv" + (cur === "/app/people" ? " on" : ""), href: "/app/people", "data-link": "" }, "People & access"),
-        h("a", { class: "nv" + (cur === "/app/activity" ? " on" : ""), href: "/app/activity", "data-link": "" }, "Activity log"),
-      );
+      $("navAdmin").replaceChildren(link("/app/people", "People & access"), link("/app/activity", "Activity log"));
     }
   }
 
   function render() {
-    let path = location.pathname.replace(/\/$/, "");
-    if (!PAGES[path] || (PAGES[path].admin && me.user.role !== "admin")) { history.replaceState(null, "", "/app/tasks" + location.search); path = "/app/tasks"; }
+    let path = curPath();
+    if (!PAGES[path] || (PAGES[path].admin && me.user.role !== "admin")) { history.replaceState(null, "", "/app"); path = "/app"; }
     const p = PAGES[path];
     document.title = p.title + " · Kliento Portal";
     $("crumb").textContent = p.crumb;
     nav();
+    $("openReq").hidden = !canTasks();
+    if ($("drawer").classList.contains("on")) closeTask(true);
+    clearInterval(pageTimer); pageTimer = null;
     const view = $("view");
-    $("openReq").hidden = !(me.user.modules || []).includes("tasks") && me.user.role !== "admin";
-    if (path !== "/app/tasks" && $("drawer").classList.contains("on")) closeTask();
     view.replaceChildren(h("div", { class: "ptitle" }, h("h2", {}, p.title)));
     p.render(view);
+  }
+  // Reloads whatever the current page shows, after a change in the drawer.
+  async function afterChange() {
+    const p = curPath();
+    if (p === "/app/tasks") await loadTasks();
+    else if (p === "/app") await loadHome();
+  }
+  const openFromUrl = () => { const t = Number(new URLSearchParams(location.search).get("t")); if (t) openTask(t); };
+  function everyMinute(path, fn) {
+    clearInterval(pageTimer);
+    pageTimer = setInterval(() => {
+      if (curPath() !== path) { clearInterval(pageTimer); return; }
+      if (!document.hidden && !$("modal").classList.contains("on")) fn();
+    }, 60000);
   }
 
   document.addEventListener("click", (e) => {
     const a = e.target.closest("a[data-link]");
-    if (!a || e.metaKey || e.ctrlKey) return;
+    if (!a || e.metaKey || e.ctrlKey || e.shiftKey) return;
     e.preventDefault(); history.pushState(null, "", a.getAttribute("href")); render();
   });
   window.addEventListener("popstate", render);
   $("signOut").addEventListener("click", async (e) => { e.preventDefault(); await KP.post("/api/auth/logout"); location.replace("/login"); });
 
-  // ── Web & IT tasks (rw task-6b) ──────────────────────────────────────────
+  // ── shared bits ──────────────────────────────────────────────────────────
   const ST = [["new", "New requests", "#3957EA"], ["todo", "To do", "#495057"], ["doing", "In progress", "#E0730B"], ["waiting", "Waiting on RiverWorks", "#7E4FD9"], ["done", "Done", "#2E9E44"]];
   const STL = Object.fromEntries(ST.map((s) => [s[0], s[1]]));
   const STC = Object.fromEntries(ST.map((s) => [s[0], s[2]]));
+  STC.doneweek = STC.done;
+  const STF = [["all", "All statuses"], ...ST.map((s) => [s[0], s[1]]), ["doneweek", "Done this week"]];
   const PL = { urgent: "Urgent", high: "High", normal: "Normal", low: "Low" };
   const PRANK = { urgent: 0, high: 1, normal: 2, low: 3 };
   const FIELD = { status: "status", priority: "priority", owner_id: "owner", due_date: "due date", title: "name" };
-  const TS = { data: null, view: "list", q: "", owner: "all", pri: "all", due: "all", sortKey: "due_date", sortDir: 1, openId: null, fresh: null, client: "riverworks", loadedAt: 0, timer: null };
+  const TS = { data: null, view: "list", q: "", owner: "all", pri: "all", due: "all", st: "all", sortKey: "due_date", sortDir: 1, openId: null, fresh: null, client: "riverworks", loadedAt: 0 };
+  const HS = { data: null };
   const svg = (w, d, extra) => { const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("width", w); s.setAttribute("height", w); s.setAttribute("viewBox", "0 0 16 16"); s.setAttribute("fill", "none"); s.setAttribute("stroke", "currentColor"); s.setAttribute("stroke-width", "1.7"); s.setAttribute("stroke-linecap", "round"); s.setAttribute("aria-hidden", "true"); const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", d); s.append(p); if (extra) extra(s); return s; };
   const CLIPD = "M13 7.5l-5.3 5.3a3.2 3.2 0 01-4.5-4.5L8.9 2.6a2.1 2.1 0 013 3L6.2 11.3a1 1 0 01-1.5-1.5L10 4.6";
+  const CHATD = "M2.5 3.5h11v7.5h-6.2L4.5 13.5V11h-2z";
+  function lockIcon(label) {
+    const s = svg(13, "M5 7.2V5.2a3 3 0 016 0v2", (x) => { const r = document.createElementNS("http://www.w3.org/2000/svg", "rect"); r.setAttribute("x", "3"); r.setAttribute("y", "7.2"); r.setAttribute("width", "10"); r.setAttribute("height", "6.8"); r.setAttribute("rx", "1.4"); x.append(r); });
+    s.removeAttribute("aria-hidden"); s.setAttribute("role", "img"); s.setAttribute("aria-label", label || "Locked"); s.setAttribute("class", "lk");
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "title"); t.textContent = label || "Locked"; s.prepend(t);
+    return s;
+  }
   const qs = (extra) => { const p = new URLSearchParams(extra || {}); if (me.user.role === "admin") p.set("client", TS.client); const s = p.toString(); return s ? "?" + s : ""; };
   const kb = (n) => n < 1048576 ? Math.max(1, Math.round(n / 1024)) + " KB" : (n / 1048576).toFixed(1) + " MB";
   const today0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
@@ -88,11 +124,65 @@
   function sq(color, cls) { const e = h("span", { class: cls || "sq" }); e.style.background = color; return e; }
   const pr = (p) => h("span", { class: "pr " + p }, h("i"), PL[p]);
   const own = (name) => name ? h("span", { class: "own" }, h("span", { class: "av" }, initials(name)), name) : h("span", { class: "own none" }, "Nobody yet");
-  const clip = (n) => n ? h("span", { class: "files" }, svg(13, CLIPD), " " + n) : h("span", { class: "files zero" }, "·");
+  const count = (n, d, one, many) => n ? h("span", { class: "files" }, svg(13, d), " " + n, h("span", { class: "sr" }, n === 1 ? one : many)) : h("span", { class: "files zero" }, "·");
+  const clip = (n) => count(n, CLIPD, " file", " files");
+  const chats = (n) => count(n, CHATD, " message", " messages");
+  const byl = (name, from) => name ? h("span", { class: "byl", title: "Added by " + name }, from ? "from " : h("span", { class: "fromw" }, "from "), first(name)) : null;
+  const clientPicker = (onchange) => h("select", { class: "dd", "aria-label": "Client", onchange: (e) => { TS.client = e.target.value; TS.owner = "all"; TS.data = null; HS.data = null; onchange(); } },
+    [["riverworks", "Buffalo RiverWorks"], ["kliento", "Kliento"]].map(([v, l]) => h("option", { value: v, selected: TS.client === v }, l)));
 
+  // ── Home ─────────────────────────────────────────────────────────────────
+  const HOME_EMPTY = { new: "No new requests.", waiting: "Nothing is waiting on RiverWorks.", doing: "Nothing in progress.", doneweek: "Nothing done yet this week." };
+  async function loadHome() {
+    const data = await getJ("/api/home" + qs());
+    const box = $("hbody");
+    if (data.error) { if (box) box.replaceChildren(h("p", { class: "empty" }, data.error)); return; }
+    HS.data = data;
+    if (curPath() === "/app") drawHome();
+  }
+  function renderHome(view) {
+    if (me.user.role === "admin") view.querySelector(".ptitle").append(clientPicker(() => loadHome()));
+    view.append(h("div", { class: "home", id: "hbody" }, h("p", { class: "empty" }, "Loading")));
+    if (!canTasks()) { $("hbody").replaceChildren(h("p", { class: "empty" }, "Nothing to show yet. Website health is in the menu.")); return; }
+    if (HS.data) drawHome();
+    loadHome().then(openFromUrl);
+    everyMinute("/app", loadHome);
+  }
+  function drawHome() {
+    const d = HS.data, box = $("hbody"); if (!box || !d) return;
+    const cards = h("div", { class: "hcards" }, d.cards.map((c) => h("a", { class: "hcard", href: "/app/tasks?s=" + c.key, "data-link": "" },
+      h("span", { class: "hlab" }, sq(STC[c.key]), c.label),
+      h("b", { class: "hnum" }, String(c.count)),
+      h("span", { class: "hsee" }, c.count ? "See the list" : "Open the list"))));
+    const lists = h("div", { class: "hlists" }, d.cards.map((c) => h("section", { class: "hlist", "aria-label": c.label },
+      h("h3", {}, sq(STC[c.key]), c.label),
+      c.items.length ? h("ul", {}, c.items.map((t) => {
+        const [dc, dl] = dueInfo(t);
+        return h("li", {}, h("button", { type: "button", class: "hitem", onclick: () => openTask(t.id) },
+          h("span", { class: "tl" }, t.locked ? lockIcon() : null, t.title),
+          h("span", { class: "hmeta" }, pr(t.priority), byl(t.by_name, true), h("span", { class: "due " + dc }, dl), t.comments ? chats(t.comments) : null)));
+      })) : h("p", { class: "gempty" }, HOME_EMPTY[c.key]),
+      c.count > c.items.length ? h("a", { class: "lnk more", href: "/app/tasks?s=" + c.key, "data-link": "" }, "See all " + c.count) : null)));
+    const feed = h("section", { class: "feed", "aria-label": "Recent activity" }, h("h3", {}, "Recent activity"),
+      d.activity.length ? h("ul", {}, d.activity.map((e) => h("li", {}, h("button", { type: "button", class: "fitem", onclick: () => openTask(e.task_id) },
+        h("span", { class: "av sm" }, initials(e.who || "?")),
+        h("span", { class: "ftext" },
+          h("span", {}, h("b", {}, e.who || "Someone"), e.kind === "comment" ? " commented on " : " moved ", h("span", { class: "tl" }, e.title), e.kind === "status" ? " to " + (STL[e.to_val] || e.to_val) : ""),
+          e.kind === "comment" && e.excerpt ? h("span", { class: "fx" }, e.excerpt) : null),
+        h("time", { datetime: new Date(e.ts * 1000).toISOString(), title: when(e.ts) }, ago(e.ts))))))
+        : h("p", { class: "gempty" }, "Nothing yet. Messages and status changes show up here."));
+    box.replaceChildren(cards, lists, feed);
+  }
+
+  // ── Web & IT tasks (rw task-6b) ──────────────────────────────────────────
+  function stOk(t) {
+    if (TS.st === "all") return true;
+    if (TS.st === "doneweek") return t.status === "done" && (t.done_at || 0) >= (TS.data.week_start || 0);
+    return t.status === TS.st;
+  }
   function filtered() {
     const q = TS.q.trim().toLowerCase();
-    return TS.data.tasks.filter((t) => (TS.owner === "all" || (t.owner_id || "") === TS.owner) && (TS.pri === "all" || t.priority === TS.pri)
+    return TS.data.tasks.filter((t) => stOk(t) && (TS.owner === "all" || (t.owner_id || "") === TS.owner) && (TS.pri === "all" || t.priority === TS.pri)
       && (!q || t.title.toLowerCase().includes(q) || String(t.id) === q.replace("#", ""))
       && (TS.due === "all" || (TS.due === "late" ? dueInfo(t)[0] === "late" : t.due_date && t.status !== "done" && (dday(t.due_date) - today0()) / 864e5 <= 7)));
   }
@@ -116,22 +206,23 @@
     const data = await getJ("/api/tasks" + qs());
     if (data.error) { toast(data.error); return; }
     TS.data = data; TS.loadedAt = Date.now();
-    if (location.pathname === "/app/tasks") drawTasks();
+    if (curPath() === "/app/tasks") drawTasks();
   }
 
   function renderTasks(view) {
-    $("openReq").hidden = false;
+    const sp = new URLSearchParams(location.search).get("s");
+    TS.st = STF.some(([v]) => v === sp) ? sp : "all";
     const title = view.querySelector(".ptitle");
     const search = h("input", { type: "search", placeholder: "Search", "aria-label": "Search tasks", value: TS.q, oninput: (e) => { TS.q = e.target.value; drawTasks(); } });
     title.append(h("label", { class: "search" }, svg(16, "M11 11l4 4", (s) => { const c = document.createElementNS("http://www.w3.org/2000/svg", "circle"); c.setAttribute("cx", "7"); c.setAttribute("cy", "7"); c.setAttribute("r", "4.5"); s.append(c); }), search));
-    const sel = (id, label, opts, key) => h("select", { class: "dd", id, "aria-label": label, onchange: (e) => { TS[key] = e.target.value; drawTasks(); } },
+    const sel = (id, label, opts, key, after) => h("select", { class: "dd", id, "aria-label": label, onchange: (e) => { TS[key] = e.target.value; if (after) after(); drawTasks(); } },
       opts.map(([v, l]) => h("option", { value: v, selected: TS[key] === v }, l)));
     const bar = h("div", { class: "tbar" });
-    if (me.user.role === "admin") {
-      bar.append(h("select", { class: "dd", "aria-label": "Client", onchange: (e) => { TS.client = e.target.value; TS.owner = "all"; TS.data = null; render(); } },
-        [["riverworks", "Buffalo RiverWorks"], ["kliento", "Kliento"]].map(([v, l]) => h("option", { value: v, selected: TS.client === v }, l))));
-    }
-    bar.append(h("span", { id: "ownerSlot" }),
+    if (me.user.role === "admin") bar.append(clientPicker(() => render()));
+    bar.append(sel("fSt", "Status", STF, "st", () => {
+      const u = new URL(location.href); if (TS.st === "all") u.searchParams.delete("s"); else u.searchParams.set("s", TS.st);
+      history.replaceState(null, "", u.pathname + u.search);
+    }), h("span", { id: "ownerSlot" }),
       sel("fPri", "Priority", [["all", "All priorities"], ["urgent", "Urgent"], ["high", "High"], ["normal", "Normal"], ["low", "Low"]], "pri"),
       sel("fDue", "Due", [["all", "Any due date"], ["late", "Late"], ["week", "Due this week"]], "due"),
       h("span", { class: "refresh", id: "fresh" }, "Loading"));
@@ -150,13 +241,10 @@
     });
     view.append(bar, tabs, h("div", { class: "totals" }, addBtn, qadd, h("span", { class: "sum", id: "sum" })), h("div", { class: "tview", id: "tview" }));
     if (TS.data) drawTasks();
-    loadTasks().then(() => { const t = Number(new URLSearchParams(location.search).get("t")); if (t) openTask(t); });
-    clearInterval(TS.timer);
-    TS.timer = setInterval(() => {
-      if (location.pathname !== "/app/tasks") { clearInterval(TS.timer); return; }
-      if (!document.hidden && !$("modal").classList.contains("on")) loadTasks();
-      const f = $("fresh"); if (f && TS.loadedAt) f.textContent = freshText();
-    }, 60000);
+    loadTasks().then(openFromUrl);
+    everyMinute("/app/tasks", () => { loadTasks(); });
+    clearInterval(TS.tick);
+    TS.tick = setInterval(() => { const f = $("fresh"); if (f && TS.loadedAt) f.textContent = freshText(); else if (!f) clearInterval(TS.tick); }, 30000);
   }
   function freshText() {
     const m = Math.floor((Date.now() - TS.loadedAt) / 60000);
@@ -175,35 +263,39 @@
     const rows = filtered();
     const open = rows.filter((x) => x.status !== "done").length, late = rows.filter((x) => dueInfo(x)[0] === "late").length;
     $("sum").replaceChildren("Open: ", h("b", {}, open + (open === 1 ? " task" : " tasks")), " · Late: ", h("b", { class: late ? "red" : "" }, String(late)));
+    const groups = TS.st === "all" ? ST : ST.filter(([k]) => k === (TS.st === "doneweek" ? "done" : TS.st));
     if (TS.view === "list") {
       const out = [];
-      for (const [k, label, color] of ST) {
+      for (const [k, label0, color] of groups) {
+        const label = TS.st === "doneweek" ? "Done this week" : label0;
         const g = sorted(rows.filter((x) => x.status === k));
         out.push(h("div", { class: "grp" }, sq(color), h("b", {}, label), h("span", { class: "cnt" }, g.length + (g.length === 1 ? " task" : " tasks"))));
         if (!g.length) { out.push(h("div", { class: "gempty" }, "Nothing here.")); continue; }
-        out.push(h("table", { class: "m tasks" }, h("colgroup", {}, ["c-st", "c-t", "c-p", "c-o", "c-d", "c-by", "c-f"].map((c) => h("col", { class: c }))), h("thead", {}, h("tr", {}, h("th", {}, "Status"), th("title", "Task"), th("priority", "Priority"), th("owner_name", "Owner"), th("due_date", "Due"), h("th", {}, "Requested by"), h("th", {}, "Files"))),
+        out.push(h("table", { class: "m tasks" }, h("colgroup", {}, ["c-st", "c-t", "c-p", "c-o", "c-d", "c-by", "c-f", "c-c"].map((c) => h("col", { class: c }))), h("thead", {}, h("tr", {}, h("th", {}, "Status"), th("title", "Task"), th("priority", "Priority"), th("owner_name", "Owner"), th("due_date", "Due"), h("th", {}, "From"), h("th", {}, "Files"), h("th", {}, "Chat"))),
           h("tbody", {}, g.map((t) => {
             const [dc, dl] = dueInfo(t);
             return h("tr", { class: "r" + (t.id === TS.fresh ? " fresh" : ""), tabindex: "0", "data-id": t.id, onclick: () => openTask(t.id), onkeydown: (e) => { if (e.key === "Enter") openTask(t.id); } },
-              h("td", {}, h("div", { class: "st" }, sq(color, "dot"), h("div", {}, label, h("small", {}, "#" + t.id)))),
-              h("td", {}, h("span", { class: "tl" }, t.title), t.mail_status === "failed" ? h("span", { class: "mailbad" }, "Email not sent") : null),
-              h("td", {}, pr(t.priority)), h("td", {}, own(t.owner_name)), h("td", {}, h("span", { class: "due " + dc }, dl)),
-              h("td", { class: "from" }, t.by_name || ""), h("td", {}, clip(t.files)));
+              h("td", { class: "c1" }, h("div", { class: "st" }, sq(color, "dot"), h("div", {}, label0, h("small", {}, "#" + t.id)))),
+              h("td", { class: "c2" }, h("span", { class: "tl" }, t.locked ? lockIcon() : null, t.title), h("small", { class: "pid" }, "#" + t.id), t.mail_status === "failed" ? h("span", { class: "mailbad" }, "Email not sent") : null),
+              h("td", { class: "c3" }, pr(t.priority)), h("td", { class: "c4" }, own(t.owner_name)), h("td", { class: "c5" }, h("span", { class: "due " + dc }, dl)),
+              h("td", { class: "c6" }, byl(t.by_name)), h("td", { class: "c7" }, clip(t.files)), h("td", { class: "c8" }, chats(t.comments)));
           }))));
       }
       v.replaceChildren(...out);
     } else {
-      const cols = ST.map(([k, label, color]) => {
+      const cols = groups.map(([k, label, color]) => {
         const g = sorted(rows.filter((x) => x.status === k));
         const col = h("div", { class: "bcol", "data-s": k },
           h("h4", {}, sq(color), label, h("span", { class: "n" }, String(g.length))),
           g.map((t) => {
             const [dc, dl] = dueInfo(t);
-            const card = h("div", { class: "bcard " + t.priority, draggable: "true", tabindex: "0", role: "button", "aria-label": t.title + ", " + label, onclick: () => openTask(t.id), onkeydown: (e) => { if (e.key === "Enter") openTask(t.id); } },
+            const frozen = !!t.locked && !d.admin;
+            const card = h("div", { class: "bcard " + t.priority + (frozen ? " frozen" : ""), draggable: frozen ? "false" : "true", tabindex: "0", role: "button", "aria-label": t.title + ", " + label + (t.locked ? ", locked" : ""), onclick: () => openTask(t.id), onkeydown: (e) => { if (e.key === "Enter") openTask(t.id); } },
+              h("div", { class: "bmeta" }, h("span", {}, "#" + t.id), byl(t.by_name, true), t.locked ? lockIcon() : null),
               h("span", { class: "tl" }, t.title),
               h("div", { class: "row2" }, pr(t.priority), h("span", { class: "due " + dc }, dl.replace(/^\w+, /, ""))),
-              h("div", { class: "row2" }, own(t.owner_name), clip(t.files)));
-            card.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", String(t.id)));
+              h("div", { class: "row2" }, own(t.owner_name), h("span", { class: "cnts" }, t.files ? clip(t.files) : null, t.comments ? chats(t.comments) : null)));
+            if (!frozen) card.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", String(t.id)));
             return card;
           }));
         col.addEventListener("dragover", (e) => { e.preventDefault(); col.classList.add("over"); });
@@ -212,6 +304,7 @@
           e.preventDefault(); col.classList.remove("over");
           const id = Number(e.dataTransfer.getData("text/plain")); const t = d.tasks.find((x) => x.id === id);
           if (!t || t.status === k) return;
+          if (t.locked && !d.admin) { toast("Camilo locked this task."); return; }
           const before = t.status; t.status = k; drawTasks();
           const r = await KP.post("/api/tasks/" + id + qs(), { status: k });
           if (!r.ok) { t.status = before; drawTasks(); toast(r.body.error || "That didn't save."); }
@@ -245,7 +338,25 @@
     const box = h("div", { class: "msg" }); walk(doc.body.firstChild || doc.body, box); return box;
   }
 
-  const EVT = (e) => {
+  // Chat text: plain text, line breaks kept by CSS, and only https links become links.
+  function linkify(text) {
+    const box = h("div", { class: "cmb" });
+    const re = /https:\/\/[^\s<>"'`]+/g;
+    let last = 0, m;
+    while ((m = re.exec(text))) {
+      let url = m[0];
+      const trail = url.match(/[.,;:!?)\]}]+$/);
+      if (trail) url = url.slice(0, url.length - trail[0].length);
+      box.append(text.slice(last, m.index));
+      let href = null; try { const u = new URL(url); if (u.protocol === "https:" && u.hostname.includes(".") && !u.username && !u.password) href = u.href; } catch (_) { /* stays text */ }
+      box.append(href ? h("a", { href, rel: "noopener noreferrer nofollow", target: "_blank" }, url) : url);
+      last = m.index + url.length; re.lastIndex = last;
+    }
+    box.append(text.slice(last));
+    return box;
+  }
+
+  const EVT = (e, owners) => {
     const who = e.who || "Portal";
     switch (e.kind) {
       case "created": return who + " added this";
@@ -253,47 +364,97 @@
       case "mail_sent": return "Emailed to Camilo";
       case "mail_failed": return "Email to Camilo didn't go";
       case "file_added": return who + " added " + (e.to_val || "a file");
+      case "comment": return who + " commented";
+      case "locked": return who + " locked it";
+      case "unlocked": return who + " unlocked it";
       case "status": return who + " moved it to " + (STL[e.to_val] || e.to_val);
       case "priority": return who + " set priority to " + (PL[e.to_val] || e.to_val);
-      case "owner_id": { const o = (TS.data && TS.data.owners.find((x) => x.id === e.to_val)); return who + " set owner to " + (o ? o.name : "nobody"); }
+      case "owner_id": { const o = (owners || []).find((x) => x.id === e.to_val); return who + " set owner to " + (o ? o.name : "nobody"); }
       case "due_date": return who + " set due date to " + (e.to_val || "none");
       case "title": return who + " renamed it";
       default: return who + " changed " + (FIELD[e.kind] || e.kind);
     }
   };
 
-  async function openTask(id) {
+  const DRAFT = {};
+  let drawerFrom = null;
+  async function openTask(id, opts) {
     const dr = $("drawer");
     const data = await getJ("/api/tasks/" + id + qs());
     if (data.error) { toast(data.error); return; }
     TS.openId = id;
-    const t = data.task;
+    const t = data.task, admin = !!data.admin, frozen = !!t.locked && !admin;
     const save = async (patch) => {
       const r = await KP.post("/api/tasks/" + id + qs(), patch);
       if (!r.ok) { toast(r.body.error || "That didn't save."); openTask(id); return; }
-      await loadTasks(); openTask(id);
+      await afterChange(); openTask(id);
     };
-    const select = (label, opts, val, field) => [h("label", { for: "d_" + field }, label), h("select", { id: "d_" + field, onchange: (e) => save({ [field]: e.target.value }) }, opts.map(([v, l]) => h("option", { value: v, selected: v === val }, l)))];
-    const ttl = h("input", { class: "ttl", id: "d_title", value: t.title, maxlength: "140", "aria-label": "Task name" });
-    ttl.addEventListener("keydown", (e) => { if (e.key === "Enter") ttl.blur(); });
-    ttl.addEventListener("change", () => { if (ttl.value.trim() && ttl.value.trim() !== t.title) save({ title: ttl.value }); else ttl.value = t.title; });
-    const due = h("input", { type: "date", id: "d_due", value: t.due_date || "" });
+    const select = (label, opts2, val, field) => [h("label", { for: "d_" + field }, label), h("select", { id: "d_" + field, disabled: frozen, onchange: (e) => save({ [field]: e.target.value }) }, opts2.map(([v, l]) => h("option", { value: v, selected: v === val }, l)))];
+    const ttl = h("textarea", { class: "ttl", id: "d_title", rows: "1", maxlength: "140", "aria-label": "Task name", readonly: frozen });
+    ttl.value = t.title;
+    const fit = () => { ttl.style.height = "auto"; ttl.style.height = ttl.scrollHeight + "px"; };
+    ttl.addEventListener("input", fit);
+    ttl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); ttl.blur(); } });
+    ttl.addEventListener("change", () => { if (!frozen && ttl.value.trim() && ttl.value.trim() !== t.title) save({ title: ttl.value }); else ttl.value = t.title; });
+    const due = h("input", { type: "date", id: "d_due", value: t.due_date || "", disabled: frozen });
     due.addEventListener("change", () => save({ due_date: due.value || null }));
     const fileIn = h("input", { type: "file", multiple: true, hidden: true, accept: ACCEPT });
     fileIn.addEventListener("change", async () => {
       const ids = []; const bad = [];
       for (const f of fileIn.files) { const pre = fileProblem(f, 0); if (pre) { bad.push(pre); continue; } const r = await uploadOne(f); if (r.ok) ids.push(r.body.id); else bad.push(f.name + ": " + (r.body.error || "didn't upload")); }
       if (bad.length) toast(bad.join(" "));
-      if (ids.length) { const r = await KP.post("/api/tasks/" + id + "/files" + qs(), { fileIds: ids }); if (!r.ok) toast(r.body.error || "That didn't save."); await loadTasks(); openTask(id); }
+      if (ids.length) { const r = await KP.post("/api/tasks/" + id + "/files" + qs(), { fileIds: ids }); if (!r.ok) toast(r.body.error || "That didn't save."); await afterChange(); openTask(id); }
     });
     const mail = t.source === "request" ? h("div", { class: "mailrow" },
       t.mail_status === "sent" ? h("span", { class: "pill green" }, h("i"), "Emailed to Camilo")
-        : t.mail_status === "failed" ? [h("span", { class: "pill red" }, h("i"), "Email not sent yet"), h("button", { class: "btn plain", type: "button", onclick: async (e) => { e.currentTarget.disabled = true; const r = await KP.post("/api/tasks/" + id + "/resend" + qs()); toast(r.ok ? "Emailed to Camilo." : (r.body.error || "Still didn't go.")); await loadTasks(); openTask(id); } }, "Retry email")]
+        : t.mail_status === "failed" ? [h("span", { class: "pill red" }, h("i"), "Email not sent yet"), h("button", { class: "btn plain", type: "button", onclick: async (e) => { e.currentTarget.disabled = true; const r = await KP.post("/api/tasks/" + id + "/resend" + qs()); toast(r.ok ? "Emailed to Camilo." : (r.body.error || "Still didn't go.")); await afterChange(); openTask(id); } }, "Retry email")]
         : h("span", { class: "pill orange" }, h("i"), "Sending email")) : null;
+    const lockBy = t.locked_by_name ? first(t.locked_by_name) : "Camilo";
+    const lockRow = admin
+      ? h("div", { class: "lockrow" + (t.locked ? " on" : "") }, t.locked ? lockIcon() : null,
+        h("span", {}, t.locked ? "Locked by " + lockBy + (t.locked_at ? " on " + when(t.locked_at) : "") + ". Staff can still chat and add files." : "Anyone on the team can change this task."),
+        h("button", { class: "btn plain", type: "button", onclick: async (e) => {
+          e.currentTarget.disabled = true;
+          const r = await KP.post("/api/tasks/" + id + "/lock" + qs(), { locked: !t.locked });
+          toast(r.ok ? (t.locked ? "Unlocked." : "Locked. Only you can change it now.") : (r.body.error || "That didn't save."));
+          await afterChange(); openTask(id);
+        } }, t.locked ? "Unlock" : "Lock task"))
+      : t.locked ? h("div", { class: "lockrow on" }, lockIcon(), h("span", {}, "Camilo locked this task. You can still chat and add files.")) : null;
+
+    // Chat. A half-written message survives the drawer redrawing after any other change.
+    const key = String(id);
+    const ta = h("textarea", { class: "inp", id: "d_msg", rows: "3", maxlength: "4000", placeholder: "Write a message", "aria-label": "Write a message" });
+    ta.value = DRAFT[key] || "";
+    const left = h("span", { class: "cnt", "aria-live": "polite" });
+    const sendB = h("button", { class: "btn primary", type: "submit" }, "Send");
+    const names = [];
+    if (t.requested_by && t.requested_by !== data.me && t.by_name) names.push(first(t.by_name));
+    if (!admin && !names.includes("Camilo")) names.push("Camilo");
+    const form = h("form", { class: "composer" }, ta, h("div", { class: "crow" }, h("span", { class: "note" }, names.length ? "Emails " + names.join(" and ") : ""), left, sendB));
+    const upd = () => { DRAFT[key] = ta.value; const n = ta.value.length; left.textContent = n > 3600 ? (4000 - n) + " characters left" : ""; sendB.disabled = !ta.value.trim(); };
+    ta.addEventListener("input", upd);
+    ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); form.requestSubmit(); } });
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!ta.value.trim() || sendB.disabled) return;
+      sendB.disabled = true; sendB.textContent = "Sending";
+      const r = await KP.post("/api/tasks/" + id + "/comments" + qs(), { body: ta.value });
+      if (!r.ok) { toast(r.body.error || "That didn't send. Try again."); sendB.textContent = "Send"; sendB.disabled = false; return; }
+      delete DRAFT[key];
+      await afterChange(); openTask(id, { chat: true });
+    });
+    upd();
+    const thread = data.comments.length
+      ? h("div", { class: "thread", "aria-label": "Messages" }, data.comments.map((m) => h("div", { class: "cm" + (m.user_id === data.me ? " mine" : "") },
+        h("div", { class: "cmh" }, h("span", { class: "av sm" }, initials(m.who)), h("b", {}, m.who || "Someone"), h("time", { datetime: new Date(m.created_at * 1000).toISOString() }, when(m.created_at))),
+        linkify(m.body))))
+      : h("p", { class: "cempty" }, "No messages yet. Ask a question or post an update here.");
+
     const wasOpen = dr.classList.contains("on"), keep = document.activeElement && dr.contains(document.activeElement) ? document.activeElement.id : "";
+    if (!wasOpen) drawerFrom = document.activeElement;
     dr.replaceChildren(
-      h("div", { class: "dh" }, h("div", { class: "grow" }, h("span", { class: "id" }, "#" + t.id + (t.by_name ? " · from " + t.by_name : "")), ttl),
-        h("button", { class: "ib", type: "button", "aria-label": "Close", onclick: closeTask }, svg(14, "M3.5 3.5l9 9M12.5 3.5l-9 9"))),
+      h("div", { class: "dh" }, h("div", { class: "grow" }, h("span", { class: "id" }, "#" + t.id, t.by_name ? [" · ", byl(t.by_name, true)] : null, t.locked ? lockIcon() : null), ttl),
+        h("button", { class: "ib", type: "button", "aria-label": "Close", onclick: () => closeTask() }, svg(14, "M3.5 3.5l9 9M12.5 3.5l-9 9"))),
       h("div", { class: "db" },
         h("div", { class: "kv" },
           select("Status", ST.map((s) => [s[0], s[1]]), t.status, "status"),
@@ -301,20 +462,33 @@
           select("Owner", [["", "Nobody yet"]].concat(data.owners.map((o) => [o.id, o.name])), t.owner_id || "", "owner_id"),
           h("label", { for: "d_due" }, "Due"), due,
           t.cc && t.cc.length ? [h("label", {}, "Cc"), h("span", {}, t.cc.join(", "))] : null),
+        lockRow,
         mail,
         t.body_html ? safeRich(t.body_html) : null,
         h("div", { class: "dsec" }, h("h4", {}, "Files"),
           h("div", { class: "att" }, data.files.map((f) => h("a", { href: "/api/files/" + f.id + qs(), download: "" }, svg(14, CLIPD), f.name, h("small", {}, kb(f.size))))),
           h("button", { class: "lnk", type: "button", onclick: () => fileIn.click() }, "Add files"), fileIn),
-        h("div", { class: "log" }, data.events.slice().reverse().map((e) => h("div", {}, h("time", {}, when(e.ts)), h("span", {}, EVT(e)))))));
+        h("div", { class: "dsec chat", id: "chat" }, h("h4", {}, "Chat", data.comments.length ? h("span", { class: "n" }, " " + data.comments.length) : null), thread, form),
+        h("div", { class: "dsec" }, h("h4", {}, "History"),
+          h("div", { class: "log" }, data.events.slice().reverse().map((e) => h("div", {}, h("time", {}, when(e.ts)), h("span", {}, EVT(e, data.owners))))))));
     dr.inert = false; dr.classList.add("on"); dr.setAttribute("aria-hidden", "false");
-    const f = keep && document.getElementById(keep); if (f) f.focus(); else if (!wasOpen) dr.querySelector(".dh .ib").focus();
+    fit();
+    if (opts && opts.chat) {
+      const lastMsg = dr.querySelector(".thread .cm:last-child");
+      if (lastMsg) { lastMsg.classList.add("fresh"); lastMsg.scrollIntoView({ block: "center" }); }
+      ta.focus({ preventScroll: true });
+    }
+    else { const f = keep && document.getElementById(keep); if (f) f.focus(); else if (!wasOpen) dr.querySelector(".dh .ib").focus(); }
     const u = new URL(location.href); u.searchParams.set("t", id); history.replaceState(null, "", u.pathname + u.search);
   }
-  function closeTask() {
+  function closeTask(keepUrl) {
     const dr = $("drawer"); if (dr.contains(document.activeElement)) document.activeElement.blur();
     dr.classList.remove("on"); dr.setAttribute("aria-hidden", "true"); dr.inert = true; TS.openId = null;
-    history.replaceState(null, "", location.pathname);
+    if (!keepUrl) {
+      const u = new URL(location.href); u.searchParams.delete("t"); history.replaceState(null, "", u.pathname + u.search);
+      if (drawerFrom && document.body.contains(drawerFrom)) drawerFrom.focus({ preventScroll: true });
+    }
+    drawerFrom = null;
   }
 
   // ── Send a request ────────────────────────────────────────────────────────
@@ -393,7 +567,9 @@
       }
       ferr.textContent = bad.join(" "); ferr.classList.toggle("on", bad.length > 0); drawFiles(); canSend();
     };
-    $("browse").addEventListener("click", () => fileIn.click()); $("clipBtn").addEventListener("click", () => fileIn.click());
+    $("browse").addEventListener("click", (e) => { e.stopPropagation(); fileIn.click(); }); $("clipBtn").addEventListener("click", () => fileIn.click());
+    // The whole drop zone opens the file picker, so it is an easy target on a phone.
+    drop.addEventListener("click", () => fileIn.click());
     fileIn.addEventListener("change", () => { addFiles(fileIn.files); fileIn.value = ""; });
     ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
     ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
@@ -411,9 +587,9 @@
       closeM();
       sub.value = ""; ed.replaceChildren(); $("rqCc").value = ""; RQ.files = []; drawFiles(); ferr.classList.remove("on"); canSend();
       modal.querySelector('input[name="urg"][value="normal"]').checked = true;
-      TS.q = ""; TS.owner = "all"; TS.pri = "all"; TS.due = "all"; TS.fresh = r.body.id;
+      TS.q = ""; TS.owner = "all"; TS.pri = "all"; TS.due = "all"; TS.st = "all"; TS.fresh = r.body.id;
       const after = () => {
-        if (location.pathname !== "/app/tasks") { history.pushState(null, "", "/app/tasks"); render(); } else loadTasks();
+        if (curPath() !== "/app/tasks" || location.search) { history.pushState(null, "", "/app/tasks"); render(); } else loadTasks();
         if (r.body.mail !== "sent") toast("Saved as #" + r.body.id + ". The email to Camilo didn't go yet; open the task to retry.");
       };
       if (r.body.mail === "sent") playSend(after); else after();
@@ -428,6 +604,47 @@
     tt.textContent = ""; let i = 0;
     const tick = () => { tt.textContent = msg.slice(0, ++i); if (i < msg.length) setTimeout(tick, msg[i - 1] === "." ? 110 : 26); else setTimeout(() => { fx.classList.remove("on"); done(); }, 1150); };
     setTimeout(tick, 120);
+  }
+
+  // ── Website health: the morning check of buffaloriverworks.com ───────────
+  const HEALTH_ROWS = [
+    ["site_up", "Website is up"],
+    ["click_tracking", "Booking and ticket click tracking works"],
+    ["tags_on", "Google Analytics, Clarity and Meta pixel are on the site"],
+    ["old_tags_gone", "Old ad and tracking code is gone"],
+    ["old_files_hidden", "Old backup files are hidden"],
+  ];
+  const tone = (ok) => ok === true ? "good" : ok === false ? "bad" : "none";
+  const dayLab = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
+  async function renderHealth(view) {
+    const box = h("div", { class: "health" }, h("p", { class: "empty" }, "Loading"));
+    view.append(box);
+    const d = await getJ("/api/health" + qs());
+    if (d.error) { box.replaceChildren(h("p", { class: "empty" }, d.error)); return; }
+    const intro = h("p", { class: "note hint2" }, "We check " + d.site + " every morning, the way a visitor sees it.");
+    const strip = h("div", { class: "strip" }, h("h3", {}, "Last 14 days"),
+      h("ol", { class: "dots" }, d.days.map((x) => {
+        const said = dayLab(x.date) + ": " + (x.ok === true ? "passed" : x.ok === false ? "failed" : "no check");
+        return h("li", { class: tone(x.ok), title: said }, h("span", { class: "sr" }, said));
+      })),
+      h("div", { class: "strip-ax", "aria-hidden": "true" }, h("span", {}, dayLab(d.days[0].date)), h("span", {}, "Today")),
+      h("div", { class: "legend", "aria-hidden": "true" }, h("span", {}, h("i", { class: "good" }), "Passed"), h("span", {}, h("i", { class: "bad" }), "Failed"), h("span", {}, h("i", { class: "none" }), "No check")));
+    const L = d.latest;
+    if (!L) { box.replaceChildren(intro, h("p", { class: "empty" }, "No checks yet. The first one shows up after the next morning check."), strip); return; }
+    const byKey = Object.fromEntries((L.checks || []).map((c) => [c.key, c]));
+    const bad = (L.checks || []).filter((c) => c.ok === false).length;
+    const stale = d.now - L.ran_at > 36 * 3600;
+    const head = h("div", { class: "hsum " + (L.ok ? "good" : "bad") },
+      h("span", { class: "big" }, h("span", { class: "hdot " + (L.ok ? "good" : "bad") }), L.ok ? "Everything is working" : bad === 1 ? "1 thing needs a look" : bad + " things need a look"),
+      h("span", { class: "note" }, "Last check " + when(L.ran_at) + " (" + ago(L.ran_at) + ")"));
+    const rows = h("ul", { class: "hrows" }, HEALTH_ROWS.map(([k, label]) => {
+      const c = byKey[k] || { ok: null, detail: "" };
+      return h("li", { class: "hrow " + tone(c.ok) }, h("span", { class: "hdot " + tone(c.ok) }), h("span", { class: "hl" }, label),
+        h("span", { class: "hr" }, c.ok === true ? "Working" : c.ok === false ? "Problem" : "Not checked"),
+        c.ok === false && c.detail ? h("span", { class: "hd" }, c.detail) : null);
+    }));
+    const staleNote = stale ? h("p", { class: "stale" }, "No new check since " + when(L.ran_at) + ". If this stays, tell Camilo.") : null;
+    box.replaceChildren(...[intro, head, staleNote, rows, strip].filter(Boolean));
   }
 
   async function renderPeople(view) {
@@ -445,7 +662,7 @@
           h("select", { class: "inp", id: "nrole" }, h("option", { value: "member" }, "Member"), h("option", { value: "admin" }, "Admin, like you")))),
       h("div", { class: "fld" }, h("label", { class: "lab", for: "npw" }, "Password you give them"),
         h("div", { class: "pwrow" }, pw, h("button", { class: "btn plain", type: "button", onclick: () => { pw.value = strongPassword(); } }, "Make one"))),
-      h("p", { class: "note" }, "Only the people on the allowed list can get an account. They sign in with this password once, confirm a code sent to their email, then save a passkey."),
+      h("p", { class: "note" }, "Only the people on the allowed list can get an account. They sign in with this password; the first time, we email them a link to confirm their email."),
       h("button", { class: "btn primary", type: "submit" }, "Add person"));
     form.addEventListener("submit", async (e) => {
       e.preventDefault(); errBox.hidden = true;
@@ -455,7 +672,7 @@
     });
 
     const table = h("tbody");
-    const wrap = h("div", { class: "tw" }, h("table", { class: "m" },
+    const wrap = h("div", { class: "tw" }, h("table", { class: "m stack" },
       h("thead", {}, h("tr", {}, ["Person", "Client", "Access", "Status", "Passkeys", "Last active", ""].map((t) => h("th", {}, t)))), table));
     view.append(h("div", { class: "tbar" }, h("span", { class: "note" }, "Only you can see this page.")), wrap, form, myPasskeyPanel());
 
@@ -488,11 +705,11 @@
       } }, "New password");
       table.append(h("tr", {},
         h("td", {}, h("div", { class: "who" }, h("span", { class: "av" }, initials(u.name)), h("div", {}, h("div", { class: "bold" }, u.name), h("div", { class: "note" }, u.email)))),
-        h("td", {}, u.client === "riverworks" ? "Buffalo RiverWorks" : "Kliento"),
-        h("td", {}, u.role === "admin" ? "Admin" : "Member"),
-        h("td", {}, status),
-        h("td", {}, String(u.passkeys)),
-        h("td", { class: "note" }, when(u.last_seen)),
+        h("td", { "data-label": "Client" }, u.client === "riverworks" ? "Buffalo RiverWorks" : "Kliento"),
+        h("td", { "data-label": "Access" }, u.role === "admin" ? "Admin" : "Member"),
+        h("td", { "data-label": "Status" }, status),
+        h("td", { "data-label": "Passkeys" }, String(u.passkeys)),
+        h("td", { class: "note", "data-label": "Last active" }, when(u.last_seen)),
         h("td", {}, h("div", { class: "acts" },
           u.status === "active" ? (u.email === me.user.email ? null : act("disable", "Turn off", "danger", "Click again to turn off")) : act("enable", "Turn on"),
           act("end_sessions", "Sign out everywhere"),
@@ -519,13 +736,13 @@
   async function renderActivity(view) {
     const body = h("tbody");
     view.append(h("div", { class: "tbar" }, h("span", { class: "note" }, "Every sign-in and action, newest first. Kept for 1 year.")),
-      h("div", { class: "tw" }, h("table", { class: "m" }, h("thead", {}, h("tr", {}, ["When", "Who", "What", "Result", "From"].map((t) => h("th", {}, t)))), body)));
+      h("div", { class: "tw" }, h("table", { class: "m stack" }, h("thead", {}, h("tr", {}, ["When", "Who", "What", "Result", "From"].map((t) => h("th", {}, t)))), body)));
     const data = await getJ("/api/admin/audit");
     for (const e of data.events) {
       const good = e.status < 400;
-      body.append(h("tr", {}, h("td", { class: "note" }, when(e.ts)), h("td", {}, e.email || "not signed in"),
+      body.append(h("tr", {}, h("td", { class: "note" }, when(e.ts)), h("td", { "data-label": "Who" }, e.email || "not signed in"),
         h("td", {}, e.action + (e.detail ? " · " + e.detail : "")),
-        h("td", {}, h("span", { class: "pill " + (good ? "green" : "red") }, h("i"), String(e.status))), h("td", { class: "note" }, e.ip)));
+        h("td", { "data-label": "Result" }, h("span", { class: "pill " + (good ? "green" : "red") }, h("i"), String(e.status))), h("td", { class: "note", "data-label": "From" }, e.ip)));
     }
   }
 
@@ -542,7 +759,6 @@
     if (me.stage !== "full") { location.replace("/login"); return; }
     $("userName").textContent = me.user.name; $("userAv").textContent = initials(me.user.name);
     if (me.user.client !== "riverworks") { $("clientName").textContent = "Kliento"; $("clientAv").textContent = "K"; }
-    if (location.pathname === "/app" || location.pathname === "/app/") history.replaceState(null, "", "/app/tasks");
     setupRequest();
     render();
   })();
