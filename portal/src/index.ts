@@ -6,6 +6,7 @@ import {
   passkeyRegisterVerify, passwordStep, setupStep, type Ctx,
 } from "./auth";
 import { adminRoute } from "./admin";
+import { mailFile, tasksCron, tasksRoute } from "./tasks";
 import { DAY, NOW, clientIp, html, json, secure } from "./lib";
 
 // Sarah's two JSON mirrors are read straight from the repo, so a bot commit is live within
@@ -65,6 +66,10 @@ async function api(c: Ctx, path: string): Promise<Response> {
     if (path === "/api/setup") return setupStep(c);
   }
 
+  // The mailer's signed attachment links: no session, the HMAC signature is the only key.
+  const mf = path.match(/^\/api\/mailfile\/([^/]{1,64})$/);
+  if (mf && method === "GET") return mailFile(c, mf[1]);
+
   const s = await getSession(c);
   if (path === "/api/auth/logout" && method === "POST") return logout(c, s);
   if (!s) {
@@ -82,6 +87,9 @@ async function api(c: Ctx, path: string): Promise<Response> {
   if (s.stage !== "full") return json({ error: "Add your passkey first." }, 403);
   audit(c, s.user.id, "api", 200, `${method} ${path}`);
   if (path.startsWith("/api/admin/")) return adminRoute(c, s, path);
+  if (path === "/api/tasks" || path.startsWith("/api/tasks/") || path === "/api/requests" || path === "/api/files" || path.startsWith("/api/files/")) {
+    return tasksRoute(c, s, path);
+  }
   return json({ error: "Not found." }, 404);
 }
 
@@ -129,5 +137,6 @@ export default {
         env.DB.prepare("DELETE FROM audit WHERE ts < ?").bind(now - 365 * DAY),
       ]).then(() => undefined),
     );
+    exec.waitUntil(tasksCron(env, exec));
   },
 } satisfies ExportedHandler<Env>;

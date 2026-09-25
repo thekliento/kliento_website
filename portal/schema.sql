@@ -90,3 +90,52 @@ CREATE TRIGGER IF NOT EXISTS users_email_allowed_insert BEFORE INSERT ON users
 CREATE TRIGGER IF NOT EXISTS users_email_allowed_update BEFORE UPDATE OF email ON users
   WHEN NOT EXISTS (SELECT 1 FROM allowed_emails WHERE email = NEW.email)
   BEGIN SELECT RAISE(ABORT, 'email not on the allowed list'); END;
+
+-- rw task-6b: Web & IT tasks, their history, and private files (bytes live in KV FILES).
+CREATE TABLE IF NOT EXISTS tasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body_html TEXT NOT NULL DEFAULT '',
+  body_text TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('new','todo','doing','waiting','done')),
+  priority TEXT NOT NULL DEFAULT 'normal' CHECK (priority IN ('urgent','high','normal','low')),
+  owner_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  due_date TEXT CHECK (due_date IS NULL OR due_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+  requested_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+  cc TEXT NOT NULL DEFAULT '[]',
+  source TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('manual','request')),
+  mail_status TEXT NOT NULL DEFAULT 'none' CHECK (mail_status IN ('none','sending','sent','failed')),
+  mail_error TEXT,
+  mail_tries INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS tasks_client ON tasks(client, status);
+INSERT INTO sqlite_sequence (name, seq) SELECT 'tasks', 1000 WHERE NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'tasks');
+
+CREATE TABLE IF NOT EXISTS task_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client TEXT NOT NULL,
+  task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id TEXT,
+  ts INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  from_val TEXT,
+  to_val TEXT
+);
+CREATE INDEX IF NOT EXISTS task_events_task ON task_events(task_id, id);
+
+-- task_id stays NULL between the upload and the send; the daily cron clears old strays.
+CREATE TABLE IF NOT EXISTS files (
+  id TEXT PRIMARY KEY,
+  client TEXT NOT NULL,
+  task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+  uploaded_by TEXT NOT NULL,
+  name TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS files_task ON files(task_id);
+CREATE INDEX IF NOT EXISTS files_stray ON files(uploaded_by, created_at);

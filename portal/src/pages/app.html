@@ -6,9 +6,9 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Kliento Portal</title>
 <link rel="icon" href="/favicon.png">
-<link rel="stylesheet" href="/_k/portal.css">
+<link rel="stylesheet" href="/_k/portal.css?v=6b">
 <script src="/_k/webauthn.js" defer></script>
-<script src="/_k/app.js" defer></script>
+<script src="/_k/app.js?v=6b" defer></script>
 </head>
 <body>
 <div class="app">
@@ -27,10 +27,54 @@
     <header class="hdr">
       <div class="acct"><span class="av" id="clientAv">BR</span><span id="clientName">Buffalo RiverWorks</span></div>
       <div class="user"><span class="av" id="userAv"></span><span id="userName"></span></div>
+      <button class="btn primary" id="openReq" type="button" aria-label="Send a request" hidden><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 1.5v11M1.5 7h11"/></svg><span>Send a request</span></button>
     </header>
     <div class="crumb" id="crumb"></div>
     <main id="view"></main>
   </div>
 </div>
+
+<aside class="drawer" id="drawer" role="dialog" aria-label="Task details" aria-hidden="true" inert></aside>
+
+<div class="scrim" id="scrim"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" aria-hidden="true" inert>
+  <div class="mh"><h3 id="mTitle">Send a request</h3><button class="ib" id="mX" type="button" aria-label="Close"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button></div>
+  <div class="mb">
+    <p class="err" id="rqErr" role="alert" hidden></p>
+    <div class="fld"><span class="lab">To</span><div class="tofix"><span class="av sm">CR</span>Camilo Rivas, Kliento</div></div>
+    <div class="fld"><label class="lab" for="rqCc">Cc <span class="hint">optional, people who should see replies</span></label><input class="inp" id="rqCc" type="text" placeholder="name@buffaloriverworks.com" autocomplete="off" spellcheck="false"></div>
+    <div class="fld"><label class="lab" for="rqSub">Subject</label><input class="inp" id="rqSub" type="text" maxlength="140" placeholder="Booking button broken on the kayak page" autocomplete="off"></div>
+    <div class="fld"><span class="lab" id="msgLab">Message</span>
+      <div class="edwrap">
+        <div class="tb" role="toolbar" aria-label="Formatting">
+          <button class="tbb" type="button" data-cmd="bold" aria-label="Bold"><b>B</b></button>
+          <button class="tbb" type="button" data-cmd="italic" aria-label="Italic"><i>I</i></button>
+          <button class="tbb" type="button" data-cmd="underline" aria-label="Underline"><u>U</u></button>
+          <span class="tbsep"></span>
+          <button class="tbb" type="button" data-cmd="insertUnorderedList" aria-label="Bullet list"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 4h8M6 8h8M6 12h8"/><circle cx="2.5" cy="4" r=".9" fill="currentColor"/><circle cx="2.5" cy="8" r=".9" fill="currentColor"/><circle cx="2.5" cy="12" r=".9" fill="currentColor"/></svg></button>
+          <button class="tbb" type="button" data-cmd="insertOrderedList" aria-label="Numbered list"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7 4h7M7 8h7M7 12h7"/><path d="M2 3l1-1v4M1.8 10.2c.3-.5 1.9-.6 1.9.4 0 .8-1.9 1.4-1.9 2.4h2" stroke-width="1.2"/></svg></button>
+          <button class="tbb" type="button" id="lnkBtn" aria-label="Add link"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.5 9.5l3-3"/><path d="M7 4.5l1.2-1.2a2.8 2.8 0 014 4L11 8.5M9 11.5l-1.2 1.2a2.8 2.8 0 01-4-4L5 7.5"/></svg></button>
+          <button class="tbb" type="button" id="clipBtn" aria-label="Attach files"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M13 7.5l-5.3 5.3a3.2 3.2 0 01-4.5-4.5L8.9 2.6a2.1 2.1 0 013 3L6.2 11.3a1 1 0 01-1.5-1.5L10 4.6"/></svg></button>
+        </div>
+        <div class="linkpop" id="linkpop"><input class="inp" id="lnkUrl" type="url" placeholder="https://" aria-label="Link address"><button class="btn tint" id="lnkAdd" type="button">Add link</button></div>
+        <div class="ed" id="ed" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="msgLab" data-ph="What do you need? Links, lists and bold all work."></div>
+      </div></div>
+    <div class="fld"><span class="lab">How urgent</span>
+      <div class="urg" role="radiogroup" aria-label="How urgent">
+        <label><input type="radio" name="urg" value="low">Low</label>
+        <label><input type="radio" name="urg" value="normal" checked>Normal</label>
+        <label><input type="radio" name="urg" value="high">High</label>
+        <label><input type="radio" name="urg" value="urgent">Urgent</label>
+      </div></div>
+    <div class="fld"><span class="lab">Files</span>
+      <div class="drop" id="drop">Drag files here or <button type="button" id="browse">browse</button><small>PDF, images, Office, text, CSV · 10 MB each · 25 MB total</small></div>
+      <input type="file" id="fileIn" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.heif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv">
+      <div class="flist" id="flist"></div>
+      <p class="ferr" id="ferr" role="alert"></p></div>
+  </div>
+  <div class="mf"><span class="note">Adds a task and emails Camilo.</span><div class="mfb"><button class="btn plain" id="mCancel" type="button">Cancel</button><button class="btn primary" id="csend" type="button" disabled>Send request</button></div></div>
+</div>
+
+<div class="sendfx" id="sendfx" aria-hidden="true"><div class="scan"></div><div class="tt" id="sendtt"></div></div>
 </body>
 </html>

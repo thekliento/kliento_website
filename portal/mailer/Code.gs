@@ -8,6 +8,10 @@
 var REQUEST_TO = 'crivas@thekliento.com';
 var FROM_NAME = 'Kliento Portal';
 var MAX_AGE_S = 300;
+// Portal files arrive as signed 30-minute links on the portal itself; nothing else is fetched.
+var FILE_PREFIX = 'https://thekliento.com/api/mailfile/';
+// Gmail caps a message near 25 MB after encoding, so attach up to 18 MB; the rest stay in the portal.
+var ATTACH_MAX = 18 * 1024 * 1024;
 
 function doPost(e) {
   try {
@@ -52,7 +56,7 @@ function doPost(e) {
         if (cc.length) opts.cc = cc.join(',');
         opts.attachments = (m.attachments || []).slice(0, 10).map(function (a) {
           return Utilities.newBlob(Utilities.base64Decode(a.base64), a.mimeType, a.filename);
-        });
+        }).concat(fetchFiles_(m.files || []));
       }
       MailApp.sendEmail(opts);
       return out_({ ok: true });
@@ -61,6 +65,23 @@ function doPost(e) {
   } catch (err) {
     return out_({ ok: false, error: 'mailer error' });
   }
+}
+
+function fetchFiles_(files) {
+  var out = [], total = 0;
+  files.slice(0, 20).forEach(function (f) {
+    var url = String(f.url || '');
+    if (url.indexOf(FILE_PREFIX) !== 0 || total + Number(f.size || 0) > ATTACH_MAX) return;
+    try {
+      var r = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: false });
+      if (r.getResponseCode() !== 200) return;
+      var blob = r.getBlob().setName(String(f.filename || 'file').slice(0, 120));
+      if (f.mimeType) blob.setContentType(String(f.mimeType));
+      total += blob.getBytes().length;
+      if (total <= ATTACH_MAX) out.push(blob);
+    } catch (e) { /* the email still goes; the file is in the portal */ }
+  });
+  return out;
 }
 
 function same_(a, b) {
@@ -78,7 +99,8 @@ function out_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
 
-/** Run once from the editor to approve the send-mail permission. Sends nothing. */
+/** Run once from the editor to approve the send-mail and fetch permissions. Sends nothing. */
 function authorize() {
   MailApp.getRemainingDailyQuota();
+  UrlFetchApp.fetch('https://thekliento.com/robots.txt', { muteHttpExceptions: true });
 }
