@@ -38,7 +38,7 @@
       go();
     } catch (e) {
       const n = fails() + 1; setFails(n);
-      err("pkErr", n >= 3 ? e.message + " You can sign in with email instead." : e.message);
+      err("pkErr", n >= 3 ? e.message + " No passkey for this site yet? Sign in with email. Lost it? Ask your Kliento admin to reset it." : e.message);
       refreshFallback();
     } finally { $("pkBtn").disabled = false; }
   });
@@ -48,7 +48,7 @@
     const email = $("email").value.trim(), password = $("password").value;
     if (!email || !password) { err("emErr", "Enter your email and password."); return; }
     $("emBtn").disabled = true;
-    const r = await KP.post("/api/auth/password", { email, password, passkeyFails: fails() });
+    const r = await KP.post("/api/auth/password", { email, password });
     $("emBtn").disabled = false;
     if (r.body.usePasskey) { show("vPasskey"); err("pkErr", r.body.error); return; }
     if (!r.ok) { err("emErr", r.body.error || "That didn't work. Try again."); return; }

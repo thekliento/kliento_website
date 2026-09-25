@@ -138,7 +138,7 @@ const GENERIC = "That email and password don't match an active account.";
 
 // Step 1 of the email path. First sign-in, a new device, or after 3 failed passkey tries.
 export async function passwordStep(c: Ctx): Promise<Response> {
-  const b = await body<{ email?: string; password?: string; passkeyFails?: number }>(c.req);
+  const b = await body<{ email?: string; password?: string }>(c.req);
   const email = String(b?.email || "").trim().toLowerCase();
   const password = String(b?.password || "");
   if (!isEmail(email) || !password || password.length > 200) return json({ error: GENERIC }, 400);
@@ -164,11 +164,12 @@ export async function passwordStep(c: Ctx): Promise<Response> {
   }
   await c.env.DB.prepare("UPDATE users SET failed_pw = 0 WHERE id = ?").bind(user.id).run();
 
-  // The email code is only for the first sign-in or after 3 failed passkey tries (Camilo's rule).
+  // Once a user has a passkey for this site, password + email code no longer signs them in
+  // (Camilo, 2026-09-25). A lost passkey = an admin runs "Reset passkeys" in People & access.
   const keys = await passkeyCount(c.env, user.id, rp(c.req, c.env)?.rpID ?? "");
-  if (keys > 0 && user.email_verified_at && Number(b?.passkeyFails || 0) < 3) {
+  if (keys > 0 && user.email_verified_at) {
     audit(c, user.id, "password.use_passkey", 409);
-    return json({ error: "You already have a passkey. Use Sign in with passkey.", usePasskey: true }, 409);
+    return json({ error: "You already have a passkey for this site. Use Sign in with passkey. Lost it? Ask your Kliento admin to reset it.", usePasskey: true }, 409);
   }
   const sent = await sendCode(c, user);
   if (!sent.ok) return json({ error: "We couldn't send a code right now. Wait a few minutes and try again." }, 429);
