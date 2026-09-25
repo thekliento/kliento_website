@@ -1,9 +1,10 @@
 import loginPage from "./pages/login.html";
 import setupPage from "./pages/setup.html";
+import joinPage from "./pages/join.html";
 import appPage from "./pages/app.html";
 import {
-  audit, codeStep, getSession, logout, passkeyLoginOptions, passkeyLoginVerify, passkeyRegisterOptions,
-  passkeyRegisterVerify, passwordStep, setupStep, type Ctx,
+  audit, getSession, joinCheck, joinStep, logout, passkeyLoginOptions, passkeyLoginVerify, passkeyRegisterOptions,
+  passkeyRegisterVerify, passwordStep, setupStep, verifyStep, type Ctx,
 } from "./auth";
 import { adminRoute } from "./admin";
 import { mailFile, tasksCron, tasksRoute } from "./tasks";
@@ -60,7 +61,9 @@ async function api(c: Ctx, path: string): Promise<Response> {
 
   if (method === "POST") {
     if (path === "/api/auth/password") return passwordStep(c);
-    if (path === "/api/auth/code") return codeStep(c);
+    if (path === "/api/auth/join/check") return joinCheck(c);
+    if (path === "/api/auth/join") return joinStep(c);
+    if (path === "/api/auth/verify") return verifyStep(c);
     if (path === "/api/auth/passkey/options") return passkeyLoginOptions(c);
     if (path === "/api/auth/passkey/verify") return passkeyLoginVerify(c);
     if (path === "/api/setup") return setupStep(c);
@@ -105,6 +108,7 @@ async function route(c: Ctx): Promise<Response> {
 
   if (path === "/login" || path === "/login/") return secure(html(loginPage));
   if (path === "/setup") return secure(html(setupPage));
+  if (path === "/join" || path === "/join/" || path === "/verify") return secure(html(joinPage));
 
   if (path === "/app" || path.startsWith("/app/")) {
     const s = await getSession(c);

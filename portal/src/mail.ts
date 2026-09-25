@@ -2,7 +2,7 @@ import { hmac, randomToken, NOW } from "./lib";
 
 // The mailer is a Google Apps Script web app in systems@thekliento.com. It only accepts
 // requests signed with MAILER_SECRET, only within 5 minutes of signing, only once each,
-// and only two message types: a login code to one address, or a request to Camilo.
+// and only these message types: a login code or a verify link to one address, a request or alert to Camilo.
 
 export type Attachment = { filename: string; mimeType: string; base64: string };
 // Files the mailer fetches itself from a signed, 30-minute link (see tasks.ts mailFile).
@@ -10,6 +10,7 @@ export type FileRef = { url: string; filename: string; mimeType: string; size: n
 
 type MailBody =
   | { type: "code"; to: string; name: string; code: string }
+  | { type: "verify"; to: string; name: string; link: string }
   | { type: "request"; subject: string; html: string; text: string; cc: string[]; replyTo: string; attachments: Attachment[]; files?: FileRef[] }
   | { type: "alert"; subject: string; text: string };
 

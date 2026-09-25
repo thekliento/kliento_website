@@ -12,6 +12,8 @@ var MAX_AGE_S = 300;
 var FILE_PREFIX = 'https://thekliento.com/api/mailfile/';
 // Gmail caps a message near 25 MB after encoding, so attach up to 18 MB; the rest stay in the portal.
 var ATTACH_MAX = 18 * 1024 * 1024;
+// Verify links only ever point at the portal's own /verify page.
+var VERIFY_PREFIX = 'https://thekliento.com/verify#t=';
 
 function doPost(e) {
   try {
@@ -42,6 +44,27 @@ function doPost(e) {
                   '<p>Hi ' + esc_(name) + ',</p><p>Your Kliento Portal sign-in code is</p>' +
                   '<p style="font-size:30px;font-weight:700;letter-spacing:6px;margin:8px 0">' + m.code + '</p>' +
                   '<p>It works for 10 minutes. If you did not try to sign in, ignore this email and tell Camilo.</p>' +
+                  '<p style="color:#6c757d">Kliento</p></div>'
+      });
+      return out_({ ok: true });
+    }
+
+    if (m.type === 'verify') {
+      var link = String(m.link || '');
+      if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(m.to) || link.indexOf(VERIFY_PREFIX) !== 0 ||
+          !/^[A-Za-z0-9_-]{20,80}$/.test(link.slice(VERIFY_PREFIX.length))) return out_({ ok: false, error: 'bad verify mail' });
+      var vname = String(m.name || '').slice(0, 80);
+      MailApp.sendEmail({
+        to: m.to,
+        name: FROM_NAME,
+        subject: 'Verify your email for the Kliento Portal',
+        body: 'Hi ' + vname + ',\n\nClick this link to verify your email and finish your Kliento Portal account:\n' + link +
+              '\n\nIt works for 24 hours. If you did not just make an account, ignore this email and tell Camilo.\n\nKliento',
+        htmlBody: '<div style="font-family:Arial,sans-serif;font-size:15px;color:#212529">' +
+                  '<p>Hi ' + esc_(vname) + ',</p><p>Click the button to verify your email and finish your Kliento Portal account.</p>' +
+                  '<p style="margin:20px 0"><a href="' + esc_(link) + '" style="background:#3957EA;color:#ffffff;text-decoration:none;' +
+                  'padding:12px 22px;border-radius:6px;font-weight:700;display:inline-block">Verify my email</a></p>' +
+                  '<p>It works for 24 hours. If you did not just make an account, ignore this email and tell Camilo.</p>' +
                   '<p style="color:#6c757d">Kliento</p></div>'
       });
       return out_({ ok: true });

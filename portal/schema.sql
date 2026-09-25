@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
 
--- short-lived login steps: email_code, passkey_auth, passkey_reg, setup
+-- short-lived login steps: verify, passkey_auth, passkey_reg, setup
 CREATE TABLE IF NOT EXISTS pending (
   id_hash TEXT PRIMARY KEY,
   kind TEXT NOT NULL,
@@ -70,10 +70,12 @@ CREATE INDEX IF NOT EXISTS audit_ts ON audit(ts);
 
 -- CORE RULE (Camilo, 2026-09-24): an account can only exist for an email on this list.
 -- The website cannot add to it; only a direct database change can. Triggers enforce it
--- even if the Worker code were wrong.
+-- even if the Worker code were wrong. Since 2026-09-25 people on the list make their own
+-- account at /join (client comes from here); everyone else is refused at the first step.
 CREATE TABLE IF NOT EXISTS allowed_emails (
   email TEXT PRIMARY KEY COLLATE NOCASE,
-  name TEXT NOT NULL
+  name TEXT NOT NULL,
+  client TEXT NOT NULL DEFAULT 'riverworks'
 );
 INSERT OR IGNORE INTO allowed_emails (email, name) VALUES
   ('crivas@thekliento.com', 'Camilo Rivas'),
@@ -84,6 +86,7 @@ INSERT OR IGNORE INTO allowed_emails (email, name) VALUES
   ('vtag@buffaloriverworks.com', 'Marc Vitagliano'),
   ('ccasale@buffaloriverworks.com', 'Collin Casale'),
   ('jernst@buffaloriverworks.com', 'Jess Ernst');
+UPDATE allowed_emails SET client = 'kliento' WHERE email = 'crivas@thekliento.com';
 CREATE TRIGGER IF NOT EXISTS users_email_allowed_insert BEFORE INSERT ON users
   WHEN NOT EXISTS (SELECT 1 FROM allowed_emails WHERE email = NEW.email)
   BEGIN SELECT RAISE(ABORT, 'email not on the allowed list'); END;

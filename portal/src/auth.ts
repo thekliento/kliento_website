@@ -7,8 +7,8 @@ import {
   type RegistrationResponseJSON,
 } from "@simplewebauthn/server";
 import {
-  DAY, HOUR, MIN, NOW, b64url, breachedCount, cookie, getCookie, hashPassword, hmac, isEmail, json, passwordProblem,
-  randomId, randomToken, safeEqual, sha256, sixDigitCode, unb64url, verifyPassword,
+  DAY, HOUR, MIN, NOW, b64url, breachedCount, cookie, getCookie, hashPassword, isEmail, json, passwordProblem,
+  randomId, randomToken, sha256, unb64url, verifyPassword,
 } from "./lib";
 import { sendMail } from "./mail";
 
@@ -17,8 +17,7 @@ const STEP_COOKIE = "__Host-kp_p";
 const REMEMBER_S = 30 * DAY;
 const SHORT_IDLE_S = 12 * HOUR;
 const SHORT_MAX_S = DAY;
-const CODE_TTL_S = 10 * MIN;
-const CODE_TRIES = 5;
+const VERIFY_TTL_S = DAY;
 const PW_TRIES = 5;
 const LOCK_S = 15 * MIN;
 
@@ -120,27 +119,47 @@ async function passkeyCount(env: Env, userId: string, rpID: string): Promise<num
   return r?.n ?? 0;
 }
 
-async function sendCode(c: Ctx, user: User): Promise<{ ok: boolean; cookie?: string }> {
-  const recent = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM pending WHERE kind = 'email_code' AND user_id = ? AND created_at > ?")
+// Camilo's rule (2026-09-25): staff make their own account at /join if their email is on
+// allowed_emails, verify it once by clicking an emailed link, then email + password always
+// works. No codes. "Keep me signed in" = 30 days.
+async function sendVerify(c: Ctx, user: { id: string; email: string; name: string }, remember: boolean): Promise<boolean> {
+  const recent = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM pending WHERE kind = 'verify' AND user_id = ? AND created_at > ?")
     .bind(user.id, NOW() - 15 * MIN).first<{ n: number }>();
-  if ((recent?.n ?? 0) >= 3) return { ok: false };
-  const code = sixDigitCode();
-  const mail = await sendMail(c.env, { type: "code", to: user.email, name: user.name, code });
-  if (!mail.ok) {
-    audit(c, user.id, "code.mail_failed", 502, mail.error || "");
-    return { ok: false };
-  }
-  const setCookie = await newStep(c, "email_code", user.id, { secret: await hmac(c.env.CODE_KEY, code) }, CODE_TTL_S);
-  return { ok: true, cookie: setCookie };
+  if ((recent?.n ?? 0) >= 3) return false;
+  const tok = randomToken(24);
+  await c.env.DB.prepare(
+    "INSERT INTO pending (id_hash,kind,user_id,data,created_at,expires_at) VALUES (?,'verify',?,?,?,?)",
+  ).bind(await sha256(tok), user.id, JSON.stringify({ remember }), NOW(), NOW() + VERIFY_TTL_S).run();
+  const mail = await sendMail(c.env, { type: "verify", to: user.email, name: user.name, link: `https://${c.env.PROD_HOST}/verify#t=${tok}` });
+  if (!mail.ok) audit(c, user.id, "verify.mail_failed", 502, mail.error || "");
+  return mail.ok;
 }
+
+function maskEmail(e: string): string {
+  const [n, d] = e.split("@");
+  return `${n.slice(0, 2)}${"*".repeat(Math.max(1, n.length - 2))}@${d}`;
+}
+
+function signedIn(setCookie: string): Response {
+  const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
+  headers.append("Set-Cookie", setCookie);
+  headers.append("Set-Cookie", clearStep);
+  return new Response(JSON.stringify({ next: "app" }), { status: 200, headers });
+}
+
+type Allowed = { email: string; name: string; client: string };
+async function allowedEmail(env: Env, email: string): Promise<Allowed | null> {
+  return env.DB.prepare("SELECT email, name, client FROM allowed_emails WHERE email = ?").bind(email).first<Allowed>();
+}
+const NOT_LISTED = "This email isn't on the list for this portal. Ask Camilo to add you.";
 
 const GENERIC = "That email and password don't match an active account.";
 
-// Step 1 of the email path. First sign-in, a new device, or after 3 failed passkey tries.
 export async function passwordStep(c: Ctx): Promise<Response> {
-  const b = await body<{ email?: string; password?: string }>(c.req);
+  const b = await body<{ email?: string; password?: string; remember?: boolean }>(c.req);
   const email = String(b?.email || "").trim().toLowerCase();
   const password = String(b?.password || "");
+  const remember = b?.remember !== false;
   if (!isEmail(email) || !password || password.length > 200) return json({ error: GENERIC }, 400);
 
   const user = await userByEmail(c.env, email);
@@ -163,54 +182,97 @@ export async function passwordStep(c: Ctx): Promise<Response> {
     return json({ error: lock ? "Too many tries. This account is locked for 15 minutes." : GENERIC }, lock ? 423 : 401);
   }
   await c.env.DB.prepare("UPDATE users SET failed_pw = 0 WHERE id = ?").bind(user.id).run();
-
-  // Once a user has a passkey for this site, password + email code no longer signs them in
-  // (Camilo, 2026-09-25). A lost passkey = an admin runs "Reset passkeys" in People & access.
-  const keys = await passkeyCount(c.env, user.id, rp(c.req, c.env)?.rpID ?? "");
-  if (keys > 0 && user.email_verified_at) {
-    audit(c, user.id, "password.use_passkey", 409);
-    return json({ error: "You already have a passkey for this site. Use Sign in with passkey. Lost it? Ask your Kliento admin to reset it.", usePasskey: true }, 409);
+  if (!user.email_verified_at) {
+    const sent = await sendVerify(c, user, remember);
+    audit(c, user.id, sent ? "verify.resent" : "verify.resend_blocked", 403);
+    return json({
+      error: sent
+        ? `Verify your email first. We sent a new link to ${maskEmail(user.email)}.`
+        : "Verify your email first. Use the link we already sent, or try again in 15 minutes.",
+      verify: true,
+    }, 403);
   }
-  const sent = await sendCode(c, user);
-  if (!sent.ok) return json({ error: "We couldn't send a code right now. Wait a few minutes and try again." }, 429);
-  audit(c, user.id, "code.sent", 200);
-  return json({ next: "code", to: maskEmail(user.email) }, 200, { "Set-Cookie": sent.cookie as string });
+  const setCookie = await startSession(c, user.id, "full", remember);
+  audit(c, user.id, "password.ok", 200);
+  return signedIn(setCookie);
 }
 
-function maskEmail(e: string): string {
-  const [n, d] = e.split("@");
-  return `${n.slice(0, 2)}${"*".repeat(Math.max(1, n.length - 2))}@${d}`;
+// /join step 1: is this email on the list? Unlisted emails stop here.
+export async function joinCheck(c: Ctx): Promise<Response> {
+  const b = await body<{ email?: string }>(c.req);
+  const email = String(b?.email || "").trim().toLowerCase();
+  if (!isEmail(email)) return json({ error: "Enter a real email address." }, 400);
+  const a = await allowedEmail(c.env, email);
+  if (!a) {
+    audit(c, null, "join.rejected", 403, email);
+    return json({ error: NOT_LISTED }, 403);
+  }
+  const u = await c.env.DB.prepare("SELECT email_verified_at, pw_hash, status FROM users WHERE email = ?").bind(email)
+    .first<{ email_verified_at: number | null; pw_hash: string | null; status: string }>();
+  if (u && u.status !== "active") return json({ error: "This account is turned off. Ask Camilo." }, 403);
+  if (u?.email_verified_at && u.pw_hash) return json({ error: "You already have an account. Sign in instead.", signIn: true }, 409);
+  return json({ ok: true, name: a.name.split(" ")[0] });
 }
 
-// Step 2 of the email path: the 6-digit code.
-export async function codeStep(c: Ctx): Promise<Response> {
-  const b = await body<{ code?: string; remember?: boolean }>(c.req);
-  const step = await readStep(c, "email_code");
-  if (!step || !step.user_id) return json({ error: "That code expired. Start again." }, 400, { "Set-Cookie": clearStep });
-  const code = String(b?.code || "").replace(/\D/g, "");
-  const good = code.length === 6 && safeEqual(await hmac(c.env.CODE_KEY, code), step.secret_hash || "");
-  if (!good) {
-    const tries = step.attempts + 1;
-    if (tries >= CODE_TRIES) {
-      await c.env.DB.prepare("DELETE FROM pending WHERE id_hash = ?").bind(step.id_hash).run();
-      audit(c, step.user_id, "code.burned", 401);
-      return json({ error: "Too many wrong codes. Start again." }, 401, { "Set-Cookie": clearStep });
-    }
-    await c.env.DB.prepare("UPDATE pending SET attempts = ? WHERE id_hash = ?").bind(tries, step.id_hash).run();
-    audit(c, step.user_id, "code.wrong", 401);
-    return json({ error: `That code is wrong. ${CODE_TRIES - tries} tries left.` }, 401);
+// /join step 2: set the password, then email the verify link.
+export async function joinStep(c: Ctx): Promise<Response> {
+  const b = await body<{ email?: string; password?: string; remember?: boolean }>(c.req);
+  const email = String(b?.email || "").trim().toLowerCase();
+  const pw = String(b?.password || "");
+  const remember = b?.remember !== false;
+  if (!isEmail(email)) return json({ error: "Enter a real email address." }, 400);
+  const a = await allowedEmail(c.env, email);
+  if (!a) {
+    audit(c, null, "join.rejected", 403, email);
+    return json({ error: NOT_LISTED }, 403);
   }
-  await c.env.DB.prepare("DELETE FROM pending WHERE id_hash = ?").bind(step.id_hash).run();
-  await c.env.DB.prepare("UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?) WHERE id = ?").bind(NOW(), step.user_id).run();
-  const keys = await passkeyCount(c.env, step.user_id, rp(c.req, c.env)?.rpID ?? "");
-  // No passkey yet: a 30-minute session that can only add one. Otherwise, signed in.
-  const stage = keys === 0 ? "enroll" : "full";
-  const setCookie = await startSession(c, step.user_id, stage, !!b?.remember);
-  audit(c, step.user_id, `code.ok.${stage}`, 200);
-  const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
-  headers.append("Set-Cookie", setCookie);
-  headers.append("Set-Cookie", clearStep);
-  return new Response(JSON.stringify({ next: stage === "enroll" ? "passkey" : "app", offerPasskey: stage === "full" }), { status: 200, headers });
+  const problem = passwordProblem(pw, email);
+  if (problem) return json({ error: problem }, 400);
+  if ((await breachedCount(pw)) > 0) return json({ error: "That password shows up in known data breaches. Pick another." }, 400);
+
+  let user = await c.env.DB.prepare("SELECT id, email, name, status, email_verified_at, pw_hash FROM users WHERE email = ?").bind(email)
+    .first<{ id: string; email: string; name: string; status: string; email_verified_at: number | null; pw_hash: string | null }>();
+  if (user && user.status !== "active") return json({ error: "This account is turned off. Ask Camilo." }, 403);
+  if (user?.email_verified_at && user.pw_hash) return json({ error: "You already have an account. Sign in instead.", signIn: true }, 409);
+  const hash = await hashPassword(pw, c.env.PEPPER);
+  if (user) {
+    await c.env.DB.prepare("UPDATE users SET pw_hash = ?, failed_pw = 0, locked_until = 0 WHERE id = ?").bind(hash, user.id).run();
+  } else {
+    const id = randomId();
+    await c.env.DB.prepare(
+      "INSERT INTO users (id,client,email,name,role,pw_hash,status,created_at,created_by) VALUES (?,?,?,?,'member',?,'active',?,NULL)",
+    ).bind(id, a.client, email, a.name, hash, NOW()).run();
+    user = { id, email, name: a.name, status: "active", email_verified_at: null, pw_hash: hash };
+  }
+  audit(c, user.id, "join.password_set", 200, email);
+  const sent = await sendVerify(c, user, remember);
+  if (!sent) return json({ error: "We couldn't send the email just now. Wait a few minutes, then sign in to get a new link." }, 429);
+  return json({ next: "sent", to: maskEmail(email) });
+}
+
+// The emailed link lands on /verify#t=...; one click verifies the email and signs them in.
+export async function verifyStep(c: Ctx): Promise<Response> {
+  const b = await body<{ token?: string }>(c.req);
+  const tok = String(b?.token || "");
+  if (tok.length < 20 || tok.length > 100) return json({ error: "This link isn't valid." }, 400);
+  const row = await c.env.DB.prepare("SELECT * FROM pending WHERE id_hash = ? AND kind = 'verify'").bind(await sha256(tok)).first<Step>();
+  if (!row || row.expires_at < NOW() || !row.user_id) {
+    return json({ error: "This link expired or was already used. Sign in with your email and password to get a new one." }, 400);
+  }
+  const user = await c.env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(row.user_id).first<User>();
+  if (!user || user.status !== "active") return json({ error: "This account is not active." }, 400);
+  await c.env.DB.batch([
+    c.env.DB.prepare("UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?) WHERE id = ?").bind(NOW(), user.id),
+    c.env.DB.prepare("DELETE FROM pending WHERE kind = 'verify' AND user_id = ?").bind(user.id),
+  ]);
+  let remember = true;
+  try { remember = JSON.parse(row.data || "{}").remember !== false; } catch { /* default: 30 days */ }
+  const setCookie = await startSession(c, user.id, "full", remember);
+  audit(c, user.id, "verify.ok", 200);
+  if (!user.email_verified_at) {
+    c.exec.waitUntil(sendMail(c.env, { type: "alert", subject: `New portal account: ${user.name}`, text: `${user.name} (${user.email}) verified their Kliento Portal account from ${c.ip}.` }).then(() => undefined));
+  }
+  return signedIn(setCookie);
 }
 
 export async function passkeyLoginOptions(c: Ctx): Promise<Response> {

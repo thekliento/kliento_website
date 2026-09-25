@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Create your account · Kliento Portal</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/_k/portal.css?v=6b">
+<script src="/_k/webauthn.js" defer></script>
+<script src="/_k/join.js?v=1" defer></script>
+</head>
+<body>
+<main class="auth">
+  <div class="authbox">
+    <div class="wordmark"><b>kliento</b><span>portal</span></div>
+
+    <section class="card" id="vEmail">
+      <h1>Create your account</h1>
+      <p class="sub">Use your work email. Only emails on the RiverWorks list can join.</p>
+      <p class="err" id="emErr" role="alert" hidden></p>
+      <form id="emForm" novalidate>
+        <div class="fld"><label class="lab" for="email">Email</label><input class="inp" id="email" type="email" autocomplete="username" required></div>
+        <button class="btn primary wide" type="submit" id="emBtn">Continue</button>
+      </form>
+      <div class="alt">Already have an account? <a class="linkbtn" href="/login">Sign in</a></div>
+    </section>
+
+    <section class="card" id="vPassword" hidden>
+      <h1 id="pwHi">Make a password</h1>
+      <p class="sub">At least 12 characters. Passwords found in known data breaches are refused.</p>
+      <p class="err" id="pwErr" role="alert" hidden></p>
+      <form id="pwForm" novalidate>
+        <input id="pwUser" type="email" autocomplete="username" hidden>
+        <div class="fld"><label class="lab" for="pw1">Password</label><input class="inp" id="pw1" type="password" autocomplete="new-password" required></div>
+        <div class="fld"><label class="lab" for="pw2">Type it again</label><input class="inp" id="pw2" type="password" autocomplete="new-password" required></div>
+        <button class="btn primary wide" type="submit" id="pwBtn">Create account</button>
+        <label class="chk"><input type="checkbox" id="remember" checked> Keep me signed in for 30 days</label>
+      </form>
+    </section>
+
+    <section class="card" id="vSent" hidden>
+      <h1>Check your email</h1>
+      <p class="sub">We sent a link to <b id="sentTo"></b>. Click <b>Verify my email</b> in it and you're in. The link works for 24 hours.</p>
+    </section>
+
+    <section class="card" id="vVerify" hidden>
+      <h1 id="vfTitle">Verifying your email</h1>
+      <p class="err" id="vfErr" role="alert" hidden></p>
+      <div class="alt" id="vfAlt" hidden><a class="linkbtn" href="/login">Go to sign in</a></div>
+    </section>
+
+    <p class="foot">Private portal for Kliento clients.</p>
+  </div>
+</main>
+</body>
+</html>
